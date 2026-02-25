@@ -1,7 +1,7 @@
 .PHONY: dev server dashboard test-server test clean
 
 dev:
-	docker-compose up --build
+	docker compose up --build
 
 server:
 	cd apps/server && uv run uvicorn main:app --host 0.0.0.0 --port 7777 --reload

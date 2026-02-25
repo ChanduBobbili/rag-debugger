@@ -1,31 +1,43 @@
-version: "3.9"
+name: rag-debugger
+
 services:
   server:
     build:
       context: ./apps/server
       dockerfile: Dockerfile
+    # Map the backend to 7777 on the host
     ports:
       - "7777:7777"
     volumes:
+      # Mount source code for live reloading
       - ./apps/server:/app
+      # Persist DuckDB databases
       - rag_data:/app/data
     environment:
       - PYTHONDONTWRITEBYTECODE=1
+    # Start uvicorn with hot-reload enabled
     command: uvicorn main:app --host 0.0.0.0 --port 7777 --reload
 
   dashboard:
     build:
       context: ./apps/dashboard
       dockerfile: Dockerfile
+    # Map the Next.js frontend to 3000 on the host
     ports:
       - "3000:3000"
     volumes:
+      # Mount source code for live reloading
       - ./apps/dashboard:/app
+      # Exclude node_modules from the host mount so
+      # the container uses its own internal build artifacts
       - /app/node_modules
-      - /app/.next
     environment:
+      # Use localhost because it is executed by the browser on the host machine
       - NEXT_PUBLIC_API_URL=http://localhost:7777
+      # Bind Next.js to all network interfaces so it can be exposed
+      - HOSTNAME=0.0.0.0
     command: pnpm dev
 
 volumes:
   rag_data:
+
