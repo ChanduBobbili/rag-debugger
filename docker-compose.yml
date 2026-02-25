@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  server:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    ports:
+      - "7777:7777"
+    volumes:
+      - ./apps/server:/app
+      - rag_data:/app/data
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+    command: uvicorn main:app --host 0.0.0.0 --port 7777 --reload
+
+  dashboard:
+    build:
+      context: ./apps/dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/dashboard:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:7777
+    command: pnpm dev
+
+volumes:
+  rag_data:

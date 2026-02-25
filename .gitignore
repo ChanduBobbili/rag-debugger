@@ -1,0 +1,69 @@
+# IDE
+.idea
+*.iml
+.vscode/settings.json
+
+# misc
+.DS_Store
+npm-debug*
+**/*.tsbuildinfo
+
+# Node
+**/node_modules/
+
+# Next.js
+**/.next/
+**/out/
+
+# Build
+**/build/
+**/dist/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/venv/
+*.egg-info/
+**/*.egg-info/
+**/.pytest_cache/
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
+# Env
+*.swp
+*.env
+*.env.*
+*.env.local
+
+# Certs
+*.pem
+
+# Turbo
+.turbo
+
+# Firebase
+**/.firebase/
+
+# Configs
+**/public/conf.js
+
+# Archives
+*.zip
+
+# Testing
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/playwright/.cache/
+
+# Million Lint
+.million
+
+# Sentence-transformers cache
+**/sentence_transformers/
+**/*.duckdb
+**/*.duckdb.wal
