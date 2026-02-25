@@ -9,12 +9,10 @@ export default function PlaygroundPage() {
   const [k, setK] = useState(10)
   const [traceId, setTraceId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
-
   const { events, connected } = useTraceStream(traceId)
 
   const runQuery = async () => {
     if (!query.trim()) return
-
     setIsRunning(true)
     try {
       const res = await fetch(
@@ -22,151 +20,111 @@ export default function PlaygroundPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: query.trim(),
-            k,
-            chunk_size: 512,
-            embedding_model: "text-embedding-3-small",
-          }),
-        },
+          body: JSON.stringify({ query: query.trim(), k, chunk_size: 512, embedding_model: "text-embedding-3-small" }),
+        }
       )
       const data = await res.json()
       setTraceId(data.trace_id)
-    } catch (e) {
-      console.error("Playground query failed:", e)
-    } finally {
-      setIsRunning(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setIsRunning(false) }
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1
-          className="text-3xl font-bold mb-1"
-          style={{ fontFamily: "Fraunces, serif" }}
-        >
-          Playground
-        </h1>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
-          Test queries against your RAG pipeline in real time
-        </p>
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>Playground</div>
+        <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>Test queries against your live RAG pipeline in real time</div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Config Panel */}
-        <div
-          className="rounded-lg border p-4 space-y-4"
-          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-        >
-          <h3
-            className="text-sm font-bold"
-            style={{ color: "var(--muted)" }}
-          >
-            Configuration
-          </h3>
-
-          <div className="space-y-2">
-            <label className="text-xs" style={{ color: "var(--muted)" }}>
-              Query
-            </label>
-            <textarea
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="What is retrieval augmented generation?"
-              className="w-full p-3 rounded text-sm resize-none"
-              rows={4}
-              style={{
-                background: "var(--surface2)",
-                border: "1px solid var(--border)",
-                color: "var(--text)",
-              }}
-            />
+      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 16 }}>
+        {/* Config */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="card">
+            <div className="card-header"><span className="card-title">Configuration</span></div>
+            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>Query</div>
+                <textarea
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="What is retrieval augmented generation?"
+                  rows={4}
+                  style={{
+                    width: "100%", background: "var(--bg2)", border: "1px solid var(--border)",
+                    borderRadius: 6, padding: 10, fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 12, color: "var(--text)", resize: "vertical", outline: "none",
+                    transition: "border-color 0.15s",
+                  }}
+                  onFocus={e => (e.target.style.borderColor = "var(--rag)")}
+                  onBlur={e => (e.target.style.borderColor = "var(--border)")}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>
+                  Top-K: <span style={{ color: "var(--rag)" }}>{k}</span>
+                </div>
+                <input type="range" min="1" max="50" value={k}
+                  onChange={e => setK(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "var(--rag)" }} />
+              </div>
+              {[
+                { label: "Embedding Model", options: ["text-embedding-3-small","text-embedding-3-large","text-embedding-ada-002"] },
+                { label: "Chunk Size", options: ["256 tokens","512 tokens","1024 tokens"] },
+              ].map(({ label, options }) => (
+                <div key={label}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>{label}</div>
+                  <select style={{
+                    width: "100%", background: "var(--bg2)", border: "1px solid var(--border)",
+                    borderRadius: 6, padding: "7px 10px", fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 11, color: "var(--text)", outline: "none",
+                  }}>
+                    {options.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
+              <button
+                onClick={runQuery}
+                disabled={isRunning || !query.trim()}
+                style={{
+                  background: isRunning ? "var(--surface2)" : "var(--rag)",
+                  color: isRunning ? "var(--muted)" : "#fff",
+                  border: "none", borderRadius: 6, padding: "10px",
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700,
+                  cursor: isRunning || !query.trim() ? "not-allowed" : "pointer",
+                  opacity: !query.trim() ? 0.5 : 1, transition: "all 0.15s",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {isRunning ? "Running…" : "▷ Run Query"}
+              </button>
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-xs" style={{ color: "var(--muted)" }}>
-              Top-K: {k}
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={k}
-              onChange={(e) => setK(Number(e.target.value))}
-              className="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs" style={{ color: "var(--muted)" }}>
-              Embedding Model
-            </label>
-            <select
-              className="w-full p-2 rounded text-sm"
-              style={{
-                background: "var(--surface2)",
-                border: "1px solid var(--border)",
-                color: "var(--text)",
-              }}
-            >
-              <option>text-embedding-3-small</option>
-              <option>text-embedding-3-large</option>
-              <option>text-embedding-ada-002</option>
-            </select>
-          </div>
-
-          <button
-            onClick={runQuery}
-            disabled={isRunning || !query.trim()}
-            className="w-full py-2 rounded text-sm font-bold transition-all"
-            style={{
-              background: isRunning ? "var(--surface2)" : "var(--rag)",
-              color: isRunning ? "var(--muted)" : "#0a0a0f",
-              opacity: !query.trim() ? 0.5 : 1,
-            }}
-          >
-            {isRunning ? "Running…" : "Run Query"}
-          </button>
         </div>
 
-        {/* Results Panel */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* Results */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {traceId ? (
             <>
-              <div className="text-xs font-mono" style={{ color: "var(--muted)" }}>
-                Trace: {traceId}
-              </div>
-
               {events.length > 0 && (
-                <div
-                  className="rounded-lg border p-4"
-                  style={{
-                    background: "var(--surface)",
-                    borderColor: "var(--border)",
-                  }}
-                >
+                <div className="card" style={{ padding: 16 }}>
                   <PipelineTimeline events={events} />
                 </div>
               )}
-
               <LiveQueryPanel events={events} connected={connected} />
+              <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>
+                trace: {traceId}
+              </div>
             </>
           ) : (
-            <div
-              className="flex flex-col items-center justify-center py-16 rounded-lg border"
-              style={{
-                background: "var(--surface)",
-                borderColor: "var(--border)",
-              }}
-            >
-              <div className="text-3xl mb-3">◷</div>
-              <div className="text-sm" style={{ color: "var(--muted)" }}>
-                Enter a query and click &quot;Run Query&quot; to start
-              </div>
-              <div className="text-xs mt-2 max-w-md text-center" style={{ color: "var(--muted)" }}>
-                Your RAG pipeline must be running and instrumented with the SDK
-                to receive live events
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", flex: 1, minHeight: 300,
+              border: "1px dashed var(--border2)", borderRadius: 10,
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.4 }}>▷</div>
+              <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 6 }}>Ready to run</div>
+              <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", maxWidth: 360 }}>
+                Enter a query and click Run Query to stream live events from your RAG pipeline
               </div>
             </div>
           )}

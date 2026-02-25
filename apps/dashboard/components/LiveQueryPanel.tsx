@@ -1,97 +1,94 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useRef } from "react"
 import type { RAGEvent } from "@/lib/types"
 
-interface Props {
-  events: RAGEvent[]
-  connected: boolean
+interface Props { events: RAGEvent[]; connected: boolean }
+
+const STAGE_COLORS: Record<string, string> = {
+  embed: "#ff5c35", retrieve: "#f0c040",
+  rerank: "#9b7dff", generate: "#00d4aa", session_complete: "#5a5880",
+}
+const STAGE_ABBR: Record<string, string> = {
+  embed: "EMB", retrieve: "RET", rerank: "RNK", generate: "GEN", session_complete: "DONE",
 }
 
 export default function LiveQueryPanel({ events, connected }: Props) {
-  const [autoScroll, setAutoScroll] = useState(true)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [events.length])
 
   return (
-    <div
-      className="rounded-lg border overflow-hidden"
-      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-    >
-      <div
-        className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ borderColor: "var(--border)" }}
-      >
-        <div className="flex items-center gap-2 text-xs">
+    <div className="card" style={{ overflow: "hidden" }}>
+      <div className="card-header">
+        <span className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
-            className="w-2 h-2 rounded-full pulse-dot"
-            style={{ background: connected ? "#00d4aa" : "#ef4444" }}
+            className={connected ? "live-dot" : ""}
+            style={{
+              display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+              background: connected ? "var(--teal)" : "var(--red)",
+            }}
           />
-          <span style={{ color: "var(--muted)" }}>
-            {connected ? "Live" : "Disconnected"}
-          </span>
-          <span style={{ color: "var(--muted)" }}>
-            · {events.length} events
-          </span>
-        </div>
-        <button
-          onClick={() => setAutoScroll(!autoScroll)}
-          className="text-xs px-2 py-1 rounded transition-colors"
-          style={{
-            background: autoScroll ? "rgba(0,212,170,0.1)" : "var(--surface2)",
-            color: autoScroll ? "#00d4aa" : "var(--muted)",
-          }}
-        >
-          {autoScroll ? "Auto-scroll ON" : "Auto-scroll OFF"}
-        </button>
+          Live Feed
+        </span>
+        <span style={{ fontSize: 10, color: connected ? "var(--teal)" : "var(--red)" }}>
+          {connected ? `${events.length} events` : "Disconnected"}
+        </span>
       </div>
-
-      <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+      <div style={{ maxHeight: 240, overflowY: "auto" }}>
         {events.length === 0 ? (
-          <div className="text-center py-8 text-xs" style={{ color: "var(--muted)" }}>
-            Waiting for events…
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "32px 16px", fontSize: 11, color: "var(--muted)",
+          }}>
+            Waiting for pipeline events…
           </div>
         ) : (
-          events.map((event, i) => (
-            <div
-              key={event.id || i}
-              className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono transition-colors"
-              style={{ background: "var(--surface2)" }}
-            >
-              <StageBadge stage={event.stage} />
-              <span className="truncate flex-1" style={{ color: "var(--text)" }}>
-                {event.query_text?.slice(0, 50) || event.stage}
-              </span>
-              {event.duration_ms && (
-                <span style={{ color: "var(--muted)" }}>
-                  {event.duration_ms.toFixed(0)}ms
+          events.map((event, i) => {
+            const color = STAGE_COLORS[event.stage] ?? "#5a5880"
+            const abbr = STAGE_ABBR[event.stage] ?? event.stage.toUpperCase().slice(0, 3)
+            return (
+              <div
+                key={event.id || i}
+                className={i === events.length - 1 ? "feed-new" : ""}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "7px 16px",
+                  borderBottom: "1px solid rgba(30,30,50,0.6)",
+                  transition: "background 0.1s",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.01)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <span style={{
+                  fontSize: 9, padding: "2px 6px", borderRadius: 3,
+                  fontWeight: 700, letterSpacing: "0.04em", flexShrink: 0,
+                  background: `${color}20`, color,
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  {abbr}
                 </span>
-              )}
-              {event.error && (
-                <span style={{ color: "#ef4444" }}>⚠</span>
-              )}
-            </div>
-          ))
+                <span style={{
+                  flex: 1, fontSize: 11, color: "var(--text2)",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {event.query_text?.slice(0, 55) || event.stage}
+                </span>
+                {event.duration_ms !== null && event.duration_ms !== undefined && (
+                  <span style={{
+                    fontSize: 10, color: "var(--muted)", flexShrink: 0,
+                    fontVariantNumeric: "tabular-nums",
+                  }}>
+                    {event.duration_ms.toFixed(0)}ms
+                  </span>
+                )}
+                {event.error && (
+                  <span style={{ color: "var(--red)", fontSize: 11, flexShrink: 0 }}>⚠</span>
+                )}
+              </div>
+            )
+          })
         )}
+        <div ref={bottomRef} />
       </div>
     </div>
-  )
-}
-
-function StageBadge({ stage }: { stage: string }) {
-  const colors: Record<string, string> = {
-    embed: "#ff6b35",
-    retrieve: "#f0c040",
-    rerank: "#a78bfa",
-    generate: "#00d4aa",
-    session_complete: "#7a788a",
-  }
-  return (
-    <span
-      className="text-xs px-1.5 py-0.5 rounded shrink-0"
-      style={{
-        background: `${colors[stage] || "#7a788a"}20`,
-        color: colors[stage] || "#7a788a",
-      }}
-    >
-      {stage}
-    </span>
   )
 }

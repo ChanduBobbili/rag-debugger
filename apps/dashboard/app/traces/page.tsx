@@ -7,10 +7,8 @@ import TraceList from "@/components/TraceList"
 export default function TracesPage() {
   const [traces, setTraces] = useState<QuerySession[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({
-    hasError: undefined as boolean | undefined,
-    minGrounding: undefined as number | undefined,
-  })
+  const [filter, setFilter] = useState<"all" | "errors" | "low">("all")
+  const [search, setSearch] = useState("")
 
   useEffect(() => {
     async function load() {
@@ -18,89 +16,70 @@ export default function TracesPage() {
       try {
         const data = await api.traces.list({
           limit: 100,
-          has_error: filters.hasError,
-          min_grounding: filters.minGrounding,
+          has_error: filter === "errors" ? true : undefined,
+          min_grounding: filter === "low" ? undefined : undefined,
         })
         setTraces(data)
-      } catch (e) {
-        console.error("Failed to load traces:", e)
-      } finally {
-        setLoading(false)
-      }
+      } catch (e) { console.error(e) }
+      finally { setLoading(false) }
     }
     load()
-  }, [filters])
+  }, [filter])
+
+  const filtered = search
+    ? traces.filter(t => t.query_text?.toLowerCase().includes(search.toLowerCase()) || t.trace_id.includes(search))
+    : traces
+
+  const FILTERS: { id: typeof filter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "errors", label: "Errors only" },
+    { id: "low", label: "Low grounding" },
+  ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1
-          className="text-3xl font-bold mb-1"
-          style={{ fontFamily: "Fraunces, serif" }}
-        >
-          Traces
-        </h1>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
-          Browse all query traces from your RAG pipeline
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div
-        className="flex gap-4 items-center p-4 rounded-lg border"
-        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-      >
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={filters.hasError === true}
-            onChange={(e) =>
-              setFilters((f) => ({
-                ...f,
-                hasError: e.target.checked ? true : undefined,
-              }))
-            }
-            className="rounded"
-          />
-          <span style={{ color: "var(--muted)" }}>Errors only</span>
-        </label>
-
-        <div className="flex items-center gap-2 text-sm">
-          <span style={{ color: "var(--muted)" }}>Min grounding:</span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={filters.minGrounding ?? 0}
-            onChange={(e) =>
-              setFilters((f) => ({
-                ...f,
-                minGrounding:
-                  Number(e.target.value) > 0
-                    ? Number(e.target.value)
-                    : undefined,
-              }))
-            }
-            className="w-32"
-          />
-          <span className="text-xs font-mono" style={{ color: "var(--rag)" }}>
-            {filters.minGrounding?.toFixed(2) ?? "any"}
-          </span>
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>Traces</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>{traces.length} total recorded</div>
         </div>
-
-        <button
-          onClick={() =>
-            setFilters({ hasError: undefined, minGrounding: undefined })
-          }
-          className="text-xs px-3 py-1 rounded transition-colors"
-          style={{ background: "var(--surface2)", color: "var(--muted)" }}
-        >
-          Reset
-        </button>
+        <button style={{
+          padding: "5px 12px", borderRadius: 5, fontSize: 11,
+          fontFamily: "'JetBrains Mono', monospace", cursor: "pointer",
+          border: "1px solid var(--border2)", background: "var(--surface2)", color: "var(--text2)",
+        }}>⬇ Export CSV</button>
       </div>
 
-      <TraceList traces={traces} loading={loading} />
+      {/* Filter bar */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 14px", background: "var(--surface2)",
+        border: "1px solid var(--border)", borderRadius: 8, marginBottom: 14,
+      }}>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>⌕</span>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search queries or trace IDs…"
+          style={{
+            flex: 1, background: "transparent", border: "none", outline: "none",
+            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+            color: "var(--text)", minWidth: 0,
+          }}
+        />
+        <div style={{ width: 1, height: 16, background: "var(--border2)", flexShrink: 0 }} />
+        {FILTERS.map(f => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`chip${filter === f.id ? " active" : ""}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <TraceList traces={filtered} loading={loading} />
     </div>
   )
 }

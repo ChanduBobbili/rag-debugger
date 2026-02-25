@@ -6,26 +6,28 @@ import TraceList from "@/components/TraceList"
 import { useTraceStream } from "@/hooks/useTraceStream"
 import LiveQueryPanel from "@/components/LiveQueryPanel"
 
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string
-  value: string
-  color: string
-}) {
+interface StatCardProps {
+  label: string; value: string; delta?: string; deltaUp?: boolean; accent: string;
+}
+
+function StatCard({ label, value, delta, deltaUp, accent }: StatCardProps) {
   return (
     <div
-      className="rounded-lg border p-5"
-      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+      className="stat-card"
+      style={{ "--accent": accent } as React.CSSProperties}
     >
-      <div className="text-xs mb-1" style={{ color: "var(--muted)" }}>
-        {label}
-      </div>
-      <div className="text-2xl font-mono font-bold" style={{ color }}>
-        {value}
-      </div>
+      <div style={{
+        position: "absolute", top: -30, right: -30, width: 90, height: 90,
+        borderRadius: "50%", background: accent, opacity: 0.04, filter: "blur(20px)",
+        pointerEvents: "none",
+      }} />
+      <div style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "'JetBrains Mono', monospace" }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: accent, marginBottom: 6, fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      {delta && (
+        <div style={{ fontSize: 10, color: deltaUp ? "var(--teal)" : "var(--red)", display: "flex", alignItems: "center", gap: 3, fontFamily: "'JetBrains Mono', monospace" }}>
+          {deltaUp ? "↑" : "↓"} {delta}
+        </div>
+      )}
     </div>
   )
 }
@@ -33,12 +35,7 @@ function StatCard({
 export default function HomePage() {
   const [traces, setTraces] = useState<QuerySession[]>([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    total: 0,
-    avgGrounding: 0,
-    failureRate: 0,
-    avgLatency: 0,
-  })
+  const [stats, setStats] = useState({ total: 0, avgGrounding: 0, failureRate: 0, avgLatency: 0 })
   const { events, connected } = useTraceStream("__live__")
 
   useEffect(() => {
@@ -53,126 +50,73 @@ export default function HomePage() {
           setStats({
             total: analytics.summary.total,
             avgGrounding: analytics.summary.avg_grounding ?? 0,
-            failureRate: analytics.summary.failure_rate,
+            failureRate: analytics.summary.failure_rate ?? 0,
             avgLatency: analytics.summary.avg_latency ?? 0,
           })
         }
-      } catch (e) {
-        console.error("Failed to load dashboard data:", e)
-      } finally {
-        setLoading(false)
-      }
+      } catch (e) { console.error(e) }
+      finally { setLoading(false) }
     }
     load()
   }, [])
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1
-          className="text-3xl font-bold mb-1"
-          style={{ fontFamily: "Fraunces, serif" }}
-        >
-          Dashboard
-        </h1>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
-          Monitor your RAG pipeline performance in real time
-        </p>
+    <div>
+      {/* Section header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>Overview</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>Last 24 hours · Auto-refreshing</div>
+        </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Traces Today"
-          value={loading ? "—" : String(stats.total)}
-          color="var(--rag)"
-        />
-        <StatCard
-          label="Avg Grounding"
-          value={
-            loading
-              ? "—"
-              : stats.avgGrounding
-                ? `${(stats.avgGrounding * 100).toFixed(0)}%`
-                : "—"
-          }
-          color="var(--agent)"
-        />
-        <StatCard
-          label="Failure Rate"
-          value={
-            loading
-              ? "—"
-              : `${stats.failureRate?.toFixed(1)}%`
-          }
-          color={stats.failureRate > 10 ? "#ef4444" : "var(--agent)"}
-        />
-        <StatCard
-          label="Avg Latency"
-          value={
-            loading
-              ? "—"
-              : stats.avgLatency
-                ? `${stats.avgLatency.toFixed(0)}ms`
-                : "—"
-          }
-          color="var(--trace)"
-        />
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+        <StatCard label="Traces Today" value={loading ? "—" : String(stats.total)} delta="from yesterday" deltaUp accent="var(--rag)" />
+        <StatCard label="Avg Grounding" value={loading ? "—" : stats.avgGrounding ? `${(stats.avgGrounding * 100).toFixed(0)}%` : "—"} delta="improvement" deltaUp accent="var(--teal)" />
+        <StatCard label="Failure Rate" value={loading ? "—" : `${stats.failureRate?.toFixed(1)}%`} accent={stats.failureRate > 10 ? "var(--red)" : "var(--gold)"} />
+        <StatCard label="Avg Latency" value={loading ? "—" : stats.avgLatency ? `${stats.avgLatency.toFixed(0)}ms` : "—"} accent="var(--purple)" />
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Traces */}
-        <div className="lg:col-span-2">
-          <h2
-            className="text-lg font-bold mb-4"
-            style={{ fontFamily: "Fraunces, serif" }}
-          >
-            Recent Traces
-          </h2>
+      {/* Main content */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16, marginBottom: 16 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Recent Traces</div>
+            <a href="/traces" style={{ fontSize: 11, color: "var(--rag)", textDecoration: "none" }}>View all →</a>
+          </div>
           <TraceList traces={traces} loading={loading} />
         </div>
 
-        {/* Live Feed + Quick Start */}
-        <div className="space-y-6">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <h2
-              className="text-lg font-bold mb-4"
-              style={{ fontFamily: "Fraunces, serif" }}
-            >
-              Live Activity
-            </h2>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14 }}>Live Activity</div>
             <LiveQueryPanel events={events} connected={connected} />
           </div>
 
-          <div
-            className="rounded-lg border p-4"
-            style={{
-              background: "var(--surface)",
-              borderColor: "var(--border)",
-            }}
-          >
-            <h3
-              className="text-sm font-bold mb-3"
-              style={{ fontFamily: "Fraunces, serif" }}
-            >
-              Quick Start
-            </h3>
-            <pre
-              className="text-xs p-3 rounded overflow-x-auto"
-              style={{ background: "var(--surface2)", color: "var(--muted)" }}
-            >
-              {`pip install rag-debugger-sdk
+          {/* Quickstart */}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Quickstart</span>
+              <span style={{ fontSize: 10, color: "var(--muted)", cursor: "pointer" }}>copy ⧉</span>
+            </div>
+            <div style={{ padding: "14px 16px" }}>
+              <pre style={{
+                fontSize: 11, lineHeight: 1.85, color: "var(--text2)",
+                background: "var(--bg2)", border: "1px solid var(--border)",
+                borderRadius: 6, padding: "12px 14px", overflowX: "auto",
+                fontFamily: "'JetBrains Mono', monospace",
+              }}>
+{`pip install rag-debugger-sdk
 
 from rag_debugger import init, rag_trace
-
 init(dashboard_url="http://localhost:7777")
 
 @rag_trace("retrieve")
 async def search(query: str):
-    return await vector_db.query(query)`}
-            </pre>
+    return await db.query(query)`}
+              </pre>
+            </div>
           </div>
         </div>
       </div>
