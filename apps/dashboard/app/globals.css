@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,400&display=swap');
+
+@theme {
+  --color-bg: #0a0a0f;
+  --color-surface: #111118;
+  --color-surface2: #1a1a24;
+  --color-border: #2a2a3a;
+  --color-text: #e8e6f0;
+  --color-muted: #7a788a;
+  --color-rag: #ff6b35;
+  --color-agent: #00d4aa;
+  --color-trace: #a78bfa;
+  --color-accent: #f0c040;
+  --font-mono: 'DM Mono', monospace;
+  --font-heading: 'Fraunces', serif;
+}
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #1a1a24;
+  --border: #2a2a3a;
+  --text: #e8e6f0;
+  --muted: #7a788a;
+  --rag: #ff6b35;
+  --agent: #00d4aa;
+  --trace: #a78bfa;
+  --accent: #f0c040;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
