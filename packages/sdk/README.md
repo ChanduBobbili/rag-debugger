@@ -1,7 +1,7 @@
 # RAG Debugger SDK 🔍
 
-[![PyPI version](https://img.shields.io/pypi/v/rag-debugger.svg)](https://pypi.org/project/rag-debugger/)
-[![Python](https://img.shields.io/pypi/pyversions/rag-debugger.svg)](https://pypi.org/project/rag-debugger/)
+[![PyPI - Version](https://img.shields.io/pypi/v/rag-debugger)](https://pypi.org/project/rag-debugger)
+[![Python](https://img.shields.io/pypi/pyversions/rag-debugger)](https://pypi.org/project/rag-debugger/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **One-line decorator to debug your RAG pipelines in real time.**
