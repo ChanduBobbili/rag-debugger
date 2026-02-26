@@ -1,105 +1,131 @@
 "use client"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 
-const NAV = [
-  { href: "/", label: "Dashboard", icon: "⌘", id: "home" },
-  { href: "/traces", label: "Traces", icon: "◉", id: "traces" },
-  { href: "/analytics", label: "Analytics", icon: "◈", id: "analytics" },
-  { href: "/playground", label: "Playground", icon: "▷", id: "playground" },
+import { LayoutDashboard, Activity, BarChart3, Play, Settings, ChevronsLeft, ChevronsRight, Hexagon } from "lucide-react"
+import NavItem from "./NavItem"
+import { cn } from "@/lib/utils"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Button } from "@/components/ui/button"
+
+interface SidebarProps {
+  collapsed: boolean
+  onToggle: () => void
+  connected: boolean
+  traceCount?: number
+}
+
+const WORKSPACE_NAV = [
+  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/traces", icon: Activity, label: "Traces" },
+  { href: "/analytics", icon: BarChart3, label: "Analytics" },
+  { href: "/playground", icon: Play, label: "Playground" },
 ]
 
-export default function Sidebar() {
-  const path = usePathname()
+const SYSTEM_NAV = [
+  { href: "/settings", icon: Settings, label: "Settings" },
+]
 
+export default function Sidebar({ collapsed, onToggle, connected, traceCount }: SidebarProps) {
   return (
     <aside
-      className="w-52 shrink-0 flex flex-col border-r"
-      style={{
-        background: "var(--surface)",
-        borderColor: "var(--border)",
-        position: "relative",
-        overflow: "hidden",
-      }}
+      className={cn(
+        "flex flex-col bg-zinc-950 border-r border-zinc-800 transition-all duration-200 ease-in-out shrink-0 overflow-hidden",
+        collapsed ? "w-16" : "w-60"
+      )}
     >
-      {/* Ambient glow */}
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 160,
-        background: "radial-gradient(ellipse at 50% 0%, rgba(255,92,53,0.07) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-
       {/* Logo */}
-      <div className="p-5 border-b" style={{ borderColor: "var(--border)" }}>
-        <div style={{
-          fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase",
-          color: "var(--rag)", marginBottom: 4,
-          fontFamily: "'JetBrains Mono', monospace",
-        }}>
-          // open source
-        </div>
-        <div style={{
-          fontFamily: "'Instrument Serif', serif",
-          fontSize: 22, lineHeight: 1, color: "var(--text)",
-          letterSpacing: "-0.02em",
-        }}>
-          RAG <em style={{ fontStyle: "italic", color: "var(--rag2)" }}>Debug</em>
-        </div>
+      <div className={cn(
+        "flex items-center h-14 border-b border-zinc-800 shrink-0",
+        collapsed ? "justify-center px-2" : "px-4 gap-3"
+      )}>
+        <Hexagon className="h-5 w-5 text-orange-500 shrink-0" />
+        {!collapsed && (
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-semibold text-sm text-zinc-100 truncate">RAG Debugger</span>
+            <span className="text-[10px] text-zinc-600 font-mono">v0.2</span>
+          </div>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-2 pt-3">
-        <div style={{
-          fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase",
-          color: "var(--muted)", padding: "4px 10px 8px",
-          fontFamily: "'JetBrains Mono', monospace",
-        }}>
-          Navigation
-        </div>
-        {NAV.map(({ href, label, icon }) => {
-          const active = path === href || (href !== "/" && path.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all mb-0.5"
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 12,
-                color: active ? "var(--rag2)" : "var(--muted)",
-                background: active ? "rgba(255,92,53,0.09)" : "transparent",
-                border: active ? "1px solid rgba(255,92,53,0.14)" : "1px solid transparent",
-                position: "relative",
-              }}
-            >
-              {active && (
-                <span style={{
-                  position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)",
-                  width: 2, height: 16, background: "var(--rag)", borderRadius: "0 2px 2px 0",
-                }} />
-              )}
-              <span style={{ width: 16, textAlign: "center", fontSize: 13 }}>{icon}</span>
-              <span>{label}</span>
-            </Link>
-          )
-        })}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+        {!collapsed && (
+          <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+            Workspace
+          </p>
+        )}
+        {WORKSPACE_NAV.map((item) => (
+          <NavItem
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            collapsed={collapsed}
+            badge={item.label === "Traces" ? traceCount : undefined}
+          />
+        ))}
+
+        <Separator className="my-3" />
+
+        {!collapsed && (
+          <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+            System
+          </p>
+        )}
+        {SYSTEM_NAV.map((item) => (
+          <NavItem
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            collapsed={collapsed}
+          />
+        ))}
       </nav>
 
-      {/* Footer */}
-      <div
-        className="p-4 border-t flex items-center gap-2"
-        style={{ borderColor: "var(--border)" }}
-      >
-        <span
-          className="live-dot"
-          style={{
-            display: "inline-block", width: 6, height: 6, borderRadius: "50%",
-            background: "var(--teal)",
-          }}
-        />
-        <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>
-          Connected · v0.2.0
-        </span>
+      {/* Collapse toggle */}
+      <div className="px-2 pb-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggle}
+          className={cn("w-full text-zinc-500 hover:text-zinc-300", collapsed && "px-0")}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+          {!collapsed && <span className="text-xs">Collapse</span>}
+        </Button>
+      </div>
+
+      {/* Footer — connection status */}
+      <div className={cn(
+        "flex items-center h-12 border-t border-zinc-800 shrink-0",
+        collapsed ? "justify-center px-2" : "px-4 gap-2"
+      )}>
+        {collapsed ? (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <span
+                className={cn("h-2 w-2 rounded-full shrink-0", connected ? "bg-emerald-500 live-dot" : "bg-red-500")}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {connected ? "Connected · localhost:7777" : "Offline"}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <>
+            <span
+              className={cn("h-2 w-2 rounded-full shrink-0", connected ? "bg-emerald-500 live-dot" : "bg-red-500")}
+            />
+            <div className="min-w-0">
+              <p className={cn("text-[11px]", connected ? "text-zinc-400" : "text-red-400")}>
+                {connected ? "Connected" : "Offline"}
+              </p>
+              <p className="text-[10px] text-zinc-600 font-mono truncate">localhost:7777</p>
+            </div>
+          </>
+        )}
       </div>
     </aside>
   )

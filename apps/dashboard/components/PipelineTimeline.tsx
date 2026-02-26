@@ -1,13 +1,16 @@
 "use client"
-import { RAGEvent, RAGStage } from "@/lib/types"
-import { useMemo } from "react"
 
-const STAGE_COLORS: Record<string, string> = {
-  embed: "#ff5c35",
-  retrieve: "#f0c040",
-  rerank: "#9b7dff",
-  generate: "#00d4aa",
-  session_complete: "#5a5880",
+import { useMemo } from "react"
+import { motion } from "framer-motion"
+import type { RAGEvent, RAGStage } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+
+const STAGE_COLORS: Record<string, { bg: string; text: string; hex: string }> = {
+  embed:    { bg: "bg-orange-500", text: "text-orange-400", hex: "#f97316" },
+  retrieve: { bg: "bg-yellow-500", text: "text-yellow-400", hex: "#eab308" },
+  rerank:   { bg: "bg-violet-500", text: "text-violet-400", hex: "#8b5cf6" },
+  generate: { bg: "bg-emerald-500", text: "text-emerald-400", hex: "#10b981" },
 }
 
 interface Props {
@@ -23,17 +26,14 @@ export default function PipelineTimeline({ events, onStageClick }: Props) {
       stage: e.stage,
       durationMs: e.duration_ms ?? 0,
       widthPct: ((e.duration_ms ?? 0) / totalMs) * 100,
+      pctOfTotal: (((e.duration_ms ?? 0) / totalMs) * 100).toFixed(1),
       error: e.error,
     }))
   }, [events])
 
   if (!stages.length) {
     return (
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        height: 56, fontSize: 12, color: "var(--muted)",
-        border: "1px dashed var(--border2)", borderRadius: 8,
-      }}>
+      <div className="flex items-center justify-center h-14 text-xs text-zinc-600 border border-dashed border-zinc-800 rounded-lg">
         No pipeline stages recorded
       </div>
     )
@@ -43,53 +43,59 @@ export default function PipelineTimeline({ events, onStageClick }: Props) {
 
   return (
     <div>
-      <div style={{
-        display: "flex", justifyContent: "space-between",
-        fontSize: 10, color: "var(--muted)", marginBottom: 10,
-        fontFamily: "'JetBrains Mono', monospace",
-      }}>
-        <span>Pipeline Execution</span>
-        <span style={{ color: "var(--text2)" }}>{totalMs.toFixed(0)}ms total</span>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-zinc-500">Pipeline Execution</span>
+        <span className="text-xs font-mono text-zinc-400">{totalMs.toFixed(0)}ms total</span>
       </div>
-      <div style={{
-        display: "flex", height: 36, borderRadius: 6,
-        overflow: "hidden", gap: 2, marginBottom: 12,
-      }}>
-        {stages.map((s, i) => (
-          <div
-            key={i}
-            title={`${s.stage}: ${s.durationMs.toFixed(0)}ms`}
-            onClick={() => onStageClick?.(s.stage as RAGStage)}
-            style={{
-              width: `${s.widthPct}%`, minWidth: 40,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-              color: "rgba(0,0,0,0.7)",
-              background: s.error ? "var(--red)" : STAGE_COLORS[s.stage],
-              cursor: "pointer", transition: "filter 0.15s",
-              borderRadius: 4,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.15)")}
-            onMouseLeave={e => (e.currentTarget.style.filter = "none")}
-          >
-            {s.widthPct > 12 ? s.stage : ""}
-          </div>
-        ))}
+
+      {/* Bar segments */}
+      <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-3">
+        {stages.map((s, i) => {
+          const colors = STAGE_COLORS[s.stage]
+          const hasError = !!s.error
+          return (
+            <Tooltip key={i} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: i * 0.08, duration: 0.4, ease: "easeOut" }}
+                  style={{ width: `${Math.max(s.widthPct, 3)}%`, transformOrigin: "left" }}
+                  className={cn(
+                    "h-full rounded-sm cursor-pointer transition-opacity hover:opacity-80",
+                    hasError
+                      ? "bg-[repeating-linear-gradient(45deg,#ef4444,#ef4444_4px,#27272a_4px,#27272a_8px)]"
+                      : colors?.bg
+                  )}
+                  onClick={() => onStageClick?.(s.stage as RAGStage)}
+                />
+              </TooltipTrigger>
+              <TooltipContent className="font-mono text-xs">
+                <p className="font-medium">{s.stage}</p>
+                <p>{s.durationMs.toFixed(0)}ms · {s.pctOfTotal}%</p>
+                {s.error && <p className="text-red-400">{s.error}</p>}
+              </TooltipContent>
+            </Tooltip>
+          )
+        })}
       </div>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        {stages.map((s, i) => (
-          <span key={i} style={{
-            fontSize: 10, color: STAGE_COLORS[s.stage],
-            display: "flex", alignItems: "center", gap: 5,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>
-            <span style={{
-              display: "inline-block", width: 6, height: 6,
-              borderRadius: "50%", background: STAGE_COLORS[s.stage],
-            }} />
-            {s.stage}: {s.durationMs.toFixed(0)}ms
-          </span>
-        ))}
+
+      {/* Labels */}
+      <div className="flex gap-4 flex-wrap">
+        {stages.map((s, i) => {
+          const colors = STAGE_COLORS[s.stage]
+          return (
+            <button
+              key={i}
+              onClick={() => onStageClick?.(s.stage as RAGStage)}
+              className="flex items-center gap-1.5 text-[10px] font-mono hover:opacity-80 transition-opacity"
+            >
+              <span className={cn("w-2 h-2 rounded-full", colors?.bg)} />
+              <span className={colors?.text}>{s.stage}</span>
+              <span className="text-zinc-600">{s.durationMs.toFixed(0)}ms</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

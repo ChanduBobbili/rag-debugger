@@ -1,134 +1,126 @@
 "use client"
+
+import { useState } from "react"
+import { motion } from "framer-motion"
 import { useRAGMetrics } from "@/hooks/useRAGMetrics"
-import { MetricsLineChart, MetricsBarChart } from "@/components/MetricsChart"
+import { AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
+import StatCard from "@/components/home/StatCard"
+import GroundingTrendChart from "@/components/analytics/GroundingTrendChart"
+import LatencyChart from "@/components/analytics/LatencyChart"
+import VolumeChart from "@/components/analytics/VolumeChart"
+import ErrorBreakdownChart from "@/components/analytics/ErrorBreakdownChart"
+import ImprovementTable from "@/components/analytics/ImprovementTable"
 
-interface StatCardProps { label: string; value: string; accent: string; delta?: string; up?: boolean }
-
-function StatCard({ label, value, accent, delta, up }: StatCardProps) {
-  return (
-    <div className="stat-card" style={{ "--accent": accent } as React.CSSProperties}>
-      <div style={{
-        position: "absolute", top: -20, right: -20, width: 70, height: 70,
-        borderRadius: "50%", background: accent, opacity: 0.04, filter: "blur(16px)", pointerEvents: "none",
-      }} />
-      <div style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "'JetBrains Mono', monospace" }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: accent, marginBottom: 6, fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      {delta && <div style={{ fontSize: 10, color: up ? "var(--teal)" : "var(--red)", fontFamily: "'JetBrains Mono', monospace" }}>{up ? "↑" : "↓"} {delta}</div>}
-    </div>
-  )
-}
+const TIME_RANGES = [
+  { label: "7d", value: 7 },
+  { label: "30d", value: 30 },
+  { label: "90d", value: 90 },
+] as const
 
 export default function AnalyticsPage() {
-  const { data, loading, error } = useRAGMetrics(7)
+  const [days, setDays] = useState<7 | 30 | 90>(7)
+  const { data, loading, error } = useRAGMetrics(days)
   const s = data?.summary
+  const daily = data?.daily ?? []
 
-  if (loading) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div className="skeleton" style={{ height: 32, width: 200 }} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
-        {[...Array(4)].map((_,i) => <div key={i} className="skeleton" style={{ height: 100 }} />)}
-      </div>
-      <div className="skeleton" style={{ height: 260 }} />
-    </div>
-  )
-
-  if (error) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 24px" }}>
-      <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 6 }}>Failed to load analytics</div>
-      <div style={{ fontSize: 11, color: "var(--muted)" }}>{error}</div>
-    </div>
-  )
+  const cards = [
+    {
+      label: "Total Queries", color: "orange",
+      value: loading ? "—" : String(s?.total ?? 0),
+      sparklineData: daily.map(d => d.total_queries),
+    },
+    {
+      label: "Avg Grounding", color: "emerald",
+      value: loading ? "—" : s?.avg_grounding ? `${(s.avg_grounding * 100).toFixed(0)}%` : "—",
+      sparklineData: daily.map(d => d.avg_grounding ?? 0),
+    },
+    {
+      label: "Avg Latency", color: "violet",
+      value: loading ? "—" : s?.avg_latency ? `${s.avg_latency.toFixed(0)}ms` : "—",
+      sparklineData: daily.map(d => d.avg_latency_ms ?? 0),
+    },
+    {
+      label: "Failure Rate", color: "red",
+      value: loading ? "—" : `${(s?.failure_rate ?? 0).toFixed(1)}%`,
+      sparklineData: daily.map(d => d.error_count),
+    },
+  ]
 
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="space-y-6"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>Analytics</div>
-          <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>Pipeline performance · Last 7 days</div>
+          <h1 className="text-lg font-semibold text-zinc-100">Analytics</h1>
+          <p className="text-xs text-zinc-500 font-mono">Pipeline performance · Last {days} days</p>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {["7d","30d","90d"].map((d, i) => (
-            <button key={d} className={`chip${i===0?" active":""}`}>{d}</button>
+        <div className="flex rounded-md border border-zinc-800 p-0.5">
+          {TIME_RANGES.map(r => (
+            <Button
+              key={r.value}
+              variant="ghost"
+              size="sm"
+              onClick={() => setDays(r.value)}
+              className={cn(
+                "h-7 px-3 text-xs rounded-sm",
+                days === r.value ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              {r.label}
+            </Button>
           ))}
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-        <StatCard label="Total Queries" value={String(s?.total ?? 0)} accent="var(--rag)" delta="23% vs prev week" up />
-        <StatCard label="Avg Grounding" value={s?.avg_grounding ? `${(s.avg_grounding * 100).toFixed(0)}%` : "—"} accent="var(--teal)" delta="5.1% improvement" up />
-        <StatCard label="Avg Latency" value={s?.avg_latency ? `${s.avg_latency.toFixed(0)}ms` : "—"} accent="var(--purple)" delta="34ms faster" up />
-        <StatCard label="Failure Rate" value={`${(s?.failure_rate ?? 0).toFixed(1)}%`} accent={(s?.failure_rate ?? 0) > 10 ? "var(--red)" : "var(--gold)"} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div className="card">
-          <div className="card-header"><span className="card-title">Grounding Score Trend</span></div>
-          <div style={{ padding: "16px 18px" }}>
-            <MetricsLineChart data={data?.daily ?? []} dataKey="avg_grounding" color="var(--teal)" label="Avg Grounding" />
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header"><span className="card-title">Query Volume</span></div>
-          <div style={{ padding: "16px 18px" }}>
-            <MetricsLineChart data={data?.daily ?? []} dataKey="total_queries" color="var(--rag)" label="Queries" />
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header"><span className="card-title">Avg Latency (ms)</span></div>
-          <div style={{ padding: "16px 18px" }}>
-            <MetricsLineChart data={data?.daily ?? []} dataKey="avg_latency_ms" color="var(--purple)" label="Latency ms" />
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header"><span className="card-title">Error Count</span></div>
-          <div style={{ padding: "16px 18px" }}>
-            <MetricsBarChart data={data?.daily ?? []} xKey="date" yKey="error_count" color="var(--red)" />
-          </div>
-        </div>
-      </div>
-
-      {data?.worst_queries && data.worst_queries.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Lowest Grounding — Improvement Candidates</span>
-            <span style={{ fontSize: 10, color: "var(--muted)", cursor: "pointer" }}>Export</span>
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "var(--bg2)" }}>
-                {["#","Query","Grounding","Latency",""].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "8px 14px", fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--muted)", borderBottom: "1px solid var(--border)", fontFamily: "'JetBrains Mono', monospace" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.worst_queries.map((q, i) => (
-                <tr key={i}
-                  style={{ cursor: "pointer", transition: "background 0.1s" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.01)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                >
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid rgba(30,30,50,0.7)", fontSize: 11, color: "var(--muted)" }}>{i+1}</td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid rgba(30,30,50,0.7)", maxWidth: 320 }}>
-                    <div style={{ fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.query_text || "—"}</div>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid rgba(30,30,50,0.7)" }}>
-                    <span className="score-low" style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {q.overall_grounding_score?.toFixed(2) ?? "—"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid rgba(30,30,50,0.7)", fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                    {q.total_duration_ms?.toFixed(0) ?? "—"}ms
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid rgba(30,30,50,0.7)" }}>
-                    <a href={`/traces/${q.trace_id}`} style={{ fontSize: 11, color: "var(--rag)", textDecoration: "none" }}>Inspect →</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {error && (
+        <div className="rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 inline mr-2" />
+          {error}
         </div>
       )}
-    </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+          >
+            <StatCard {...card} loading={loading} />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[280px]" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <GroundingTrendChart data={daily} />
+          <LatencyChart data={daily} />
+          <VolumeChart data={daily} />
+          <ErrorBreakdownChart data={daily} />
+        </div>
+      )}
+
+      {/* Improvement Table */}
+      {data?.worst_queries && data.worst_queries.length > 0 && (
+        <ImprovementTable queries={data.worst_queries} />
+      )}
+    </motion.div>
   )
 }

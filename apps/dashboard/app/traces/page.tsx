@@ -1,85 +1,106 @@
 "use client"
+
 import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
 import { api } from "@/lib/api"
 import type { QuerySession } from "@/lib/types"
 import TraceList from "@/components/TraceList"
+import { Search, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+type FilterType = "all" | "errors" | "low"
 
 export default function TracesPage() {
   const [traces, setTraces] = useState<QuerySession[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | "errors" | "low">("all")
+  const [filter, setFilter] = useState<FilterType>("all")
   const [search, setSearch] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       setLoading(true)
+      setError(null)
       try {
         const data = await api.traces.list({
           limit: 100,
           has_error: filter === "errors" ? true : undefined,
-          min_grounding: filter === "low" ? undefined : undefined,
         })
         setTraces(data)
-      } catch (e) { console.error(e) }
-      finally { setLoading(false) }
+      } catch (e) {
+        setError("Failed to load traces. Is the server running at localhost:7777?")
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [filter])
 
   const filtered = search
-    ? traces.filter(t => t.query_text?.toLowerCase().includes(search.toLowerCase()) || t.trace_id.includes(search))
-    : traces
+    ? traces.filter(t =>
+        t.query_text?.toLowerCase().includes(search.toLowerCase()) ||
+        t.trace_id.includes(search)
+      )
+    : filter === "low"
+      ? traces.filter(t => t.overall_grounding_score !== null && t.overall_grounding_score < 0.5)
+      : traces
 
-  const FILTERS: { id: typeof filter; label: string }[] = [
+  const FILTERS: { id: FilterType; label: string; icon?: React.ReactNode }[] = [
     { id: "all", label: "All" },
-    { id: "errors", label: "Errors only" },
-    { id: "low", label: "Low grounding" },
+    { id: "errors", label: "Errors", icon: <AlertCircle className="h-3 w-3 mr-1" /> },
+    { id: "low", label: "Low grounding < 0.5" },
   ]
 
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+    >
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>Traces</div>
-          <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>{traces.length} total recorded</div>
+          <h1 className="text-lg font-semibold text-zinc-100">Traces</h1>
+          <p className="text-xs text-zinc-500 font-mono">{traces.length} total recorded</p>
         </div>
-        <button style={{
-          padding: "5px 12px", borderRadius: 5, fontSize: 11,
-          fontFamily: "'JetBrains Mono', monospace", cursor: "pointer",
-          border: "1px solid var(--border2)", background: "var(--surface2)", color: "var(--text2)",
-        }}>⬇ Export CSV</button>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-400 mb-4">
+          <AlertCircle className="h-4 w-4 inline mr-2" />
+          {error}
+        </div>
+      )}
+
       {/* Filter bar */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "10px 14px", background: "var(--surface2)",
-        border: "1px solid var(--border)", borderRadius: 8, marginBottom: 14,
-      }}>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>⌕</span>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search queries or trace IDs…"
-          style={{
-            flex: 1, background: "transparent", border: "none", outline: "none",
-            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
-            color: "var(--text)", minWidth: 0,
-          }}
-        />
-        <div style={{ width: 1, height: 16, background: "var(--border2)", flexShrink: 0 }} />
-        {FILTERS.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`chip${filter === f.id ? " active" : ""}`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 mb-4 -mx-4 lg:-mx-6 px-4 lg:px-6">
+        <div className="flex items-center gap-2 py-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search queries or trace IDs…"
+              className="w-full pl-9 h-9 bg-zinc-900 border border-zinc-800 rounded-md text-sm text-zinc-200 placeholder:text-zinc-600 outline-none focus-visible:ring-1 focus-visible:ring-zinc-600 transition-colors"
+            />
+          </div>
+          {FILTERS.map(f => (
+            <Button
+              key={f.id}
+              variant={filter === f.id ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilter(f.id)}
+              className={cn(filter === f.id && "text-zinc-100")}
+            >
+              {f.icon}
+              {f.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <TraceList traces={filtered} loading={loading} />
-    </div>
+    </motion.div>
   )
 }

@@ -1,125 +1,139 @@
 "use client"
+
 import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
 import { api } from "@/lib/api"
-import type { QuerySession } from "@/lib/types"
-import TraceList from "@/components/TraceList"
+import type { QuerySession, AnalyticsResponse } from "@/lib/types"
 import { useTraceStream } from "@/hooks/useTraceStream"
-import LiveQueryPanel from "@/components/LiveQueryPanel"
-
-interface StatCardProps {
-  label: string; value: string; delta?: string; deltaUp?: boolean; accent: string;
-}
-
-function StatCard({ label, value, delta, deltaUp, accent }: StatCardProps) {
-  return (
-    <div
-      className="stat-card"
-      style={{ "--accent": accent } as React.CSSProperties}
-    >
-      <div style={{
-        position: "absolute", top: -30, right: -30, width: 90, height: 90,
-        borderRadius: "50%", background: accent, opacity: 0.04, filter: "blur(20px)",
-        pointerEvents: "none",
-      }} />
-      <div style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "'JetBrains Mono', monospace" }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: accent, marginBottom: 6, fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      {delta && (
-        <div style={{ fontSize: 10, color: deltaUp ? "var(--teal)" : "var(--red)", display: "flex", alignItems: "center", gap: 3, fontFamily: "'JetBrains Mono', monospace" }}>
-          {deltaUp ? "↑" : "↓"} {delta}
-        </div>
-      )}
-    </div>
-  )
-}
+import { AlertCircle } from "lucide-react"
+import StatCard from "@/components/home/StatCard"
+import TraceRow from "@/components/home/TraceRow"
+import LiveFeed from "@/components/home/LiveFeed"
+import GettingStarted from "@/components/home/GettingStarted"
+import { Skeleton } from "@/components/ui/skeleton"
+import Link from "next/link"
 
 export default function HomePage() {
   const [traces, setTraces] = useState<QuerySession[]>([])
-  const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ total: 0, avgGrounding: 0, failureRate: 0, avgLatency: 0 })
+  const [metrics, setMetrics] = useState<AnalyticsResponse | null>(null)
+  const [tracesLoading, setTracesLoading] = useState(true)
+  const [metricsLoading, setMetricsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { events, connected } = useTraceStream("__live__")
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [traceList, analytics] = await Promise.all([
-          api.traces.list({ limit: 20 }),
-          api.analytics.metrics(1).catch(() => null),
-        ])
-        setTraces(traceList)
-        if (analytics?.summary) {
-          setStats({
-            total: analytics.summary.total,
-            avgGrounding: analytics.summary.avg_grounding ?? 0,
-            failureRate: analytics.summary.failure_rate ?? 0,
-            avgLatency: analytics.summary.avg_latency ?? 0,
-          })
-        }
-      } catch (e) { console.error(e) }
-      finally { setLoading(false) }
-    }
-    load()
+    api.analytics.metrics(7)
+      .then((d) => { setMetrics(d); setMetricsLoading(false) })
+      .catch(() => { setMetricsLoading(false) })
+
+    api.traces.list({ limit: 8 })
+      .then((d) => { setTraces(d); setTracesLoading(false) })
+      .catch((e) => {
+        setError("Failed to load traces. Is the server running at localhost:7777?")
+        setTracesLoading(false)
+        console.error(e)
+      })
   }, [])
 
-  return (
-    <div>
-      {/* Section header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
-        <div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>Overview</div>
-          <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>Last 24 hours · Auto-refreshing</div>
-        </div>
-      </div>
+  const s = metrics?.summary
+  const daily = metrics?.daily ?? []
+  const totalSpark = daily.map((d) => d.total_queries)
+  const groundingSpark = daily.map((d) => d.avg_grounding ?? 0)
+  const latencySpark = daily.map((d) => d.avg_latency_ms ?? 0)
+  const errorSpark = daily.map((d) => d.error_count)
 
-      {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-        <StatCard label="Traces Today" value={loading ? "—" : String(stats.total)} delta="from yesterday" deltaUp accent="var(--rag)" />
-        <StatCard label="Avg Grounding" value={loading ? "—" : stats.avgGrounding ? `${(stats.avgGrounding * 100).toFixed(0)}%` : "—"} delta="improvement" deltaUp accent="var(--teal)" />
-        <StatCard label="Failure Rate" value={loading ? "—" : `${stats.failureRate?.toFixed(1)}%`} accent={stats.failureRate > 10 ? "var(--red)" : "var(--gold)"} />
-        <StatCard label="Avg Latency" value={loading ? "—" : stats.avgLatency ? `${stats.avgLatency.toFixed(0)}ms` : "—"} accent="var(--purple)" />
+  const cards = [
+    {
+      label: "Traces Today", color: "orange",
+      value: metricsLoading ? "—" : String(s?.total ?? 0),
+      sparklineData: totalSpark,
+    },
+    {
+      label: "Avg Grounding", color: "emerald",
+      value: metricsLoading ? "—" : s?.avg_grounding ? `${(s.avg_grounding * 100).toFixed(0)}%` : "—",
+      sparklineData: groundingSpark,
+    },
+    {
+      label: "Failure Rate", color: "red",
+      value: metricsLoading ? "—" : `${(s?.failure_rate ?? 0).toFixed(1)}%`,
+      sparklineData: errorSpark,
+    },
+    {
+      label: "Avg Latency", color: "violet",
+      value: metricsLoading ? "—" : s?.avg_latency ? `${s.avg_latency.toFixed(0)}ms` : "—",
+      sparklineData: latencySpark,
+    },
+  ]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="space-y-6"
+    >
+      {error && (
+        <div className="rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 inline mr-2" />
+          {error}
+        </div>
+      )}
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+          >
+            <StatCard {...card} loading={metricsLoading} />
+          </motion.div>
+        ))}
       </div>
 
       {/* Main content */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16, marginBottom: 16 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Recent Traces</div>
-            <a href="/traces" style={{ fontSize: 11, color: "var(--rag)", textDecoration: "none" }}>View all →</a>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Recent Traces */}
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-zinc-200">Recent Traces</h2>
+            <Link href="/traces" className="text-xs text-orange-400 hover:text-orange-300 transition-colors">
+              View all →
+            </Link>
           </div>
-          <TraceList traces={traces} loading={loading} />
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 divide-y divide-zinc-800/50">
+            {tracesLoading ? (
+              <div className="p-3 space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : traces.length > 0 ? (
+              traces.map((trace, i) => (
+                <motion.div
+                  key={trace.query_id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                >
+                  <TraceRow trace={trace} />
+                </motion.div>
+              ))
+            ) : null}
+          </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14 }}>Live Activity</div>
-            <LiveQueryPanel events={events} connected={connected} />
-          </div>
-
-          {/* Quickstart */}
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Quickstart</span>
-              <span style={{ fontSize: 10, color: "var(--muted)", cursor: "pointer" }}>copy ⧉</span>
-            </div>
-            <div style={{ padding: "14px 16px" }}>
-              <pre style={{
-                fontSize: 11, lineHeight: 1.85, color: "var(--text2)",
-                background: "var(--bg2)", border: "1px solid var(--border)",
-                borderRadius: 6, padding: "12px 14px", overflowX: "auto",
-                fontFamily: "'JetBrains Mono', monospace",
-              }}>
-{`pip install rag-debugger-sdk
-
-from rag_debugger import init, rag_trace
-init(dashboard_url="http://localhost:7777")
-
-@rag_trace("retrieve")
-async def search(query: str):
-    return await db.query(query)`}
-              </pre>
-            </div>
-          </div>
+        {/* Live Feed */}
+        <div>
+          <h2 className="text-sm font-medium text-zinc-200 mb-3">Live Activity</h2>
+          <LiveFeed events={events} connected={connected} />
         </div>
       </div>
-    </div>
+
+      {/* Getting Started — only when no traces */}
+      {!tracesLoading && traces.length === 0 && <GettingStarted />}
+    </motion.div>
   )
 }

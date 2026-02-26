@@ -1,6 +1,8 @@
 "use client"
-import { useState } from "react"
+
+import { useState, useCallback } from "react"
 import type { GroundingResult, ChunkScore } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface Props {
   answer: string
@@ -14,63 +16,65 @@ export default function GroundingHighlighter({ answer, grounding, chunks, onSent
   const groundedCount = grounding.filter(g => g.grounded).length
   const pct = grounding.length ? Math.round((groundedCount / grounding.length) * 100) : 0
 
+  const handleMouseEnter = useCallback((e: React.MouseEvent, result: GroundingResult) => {
+    onSentenceHover?.(result.source_chunk_id)
+    const chunk = chunks?.find(c => c.chunk_id === result.source_chunk_id)
+    if (chunk) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      const tooltipWidth = 280
+      const x = rect.right + tooltipWidth > window.innerWidth
+        ? rect.left - tooltipWidth - 4
+        : rect.right + 4
+      setTooltip({
+        text: `${(result.score * 100).toFixed(0)}% match · ${chunk.text.slice(0, 70)}…`,
+        x,
+        y: rect.top,
+      })
+    }
+  }, [chunks, onSentenceHover])
+
   if (!grounding.length) {
-    return <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--text)" }}>{answer}</p>
+    return <p className="text-sm leading-relaxed text-zinc-300">{answer}</p>
   }
 
   return (
     <div>
-      <p style={{ fontSize: 13, lineHeight: 1.9, color: "var(--text)" }}>
-        {grounding.map((result, i) => {
-          const chunk = chunks?.find(c => c.chunk_id === result.source_chunk_id)
-          return (
-            <span
-              key={i}
-              className={result.grounded ? "grounded" : "hallucinated"}
-              onMouseEnter={e => {
-                onSentenceHover?.(result.source_chunk_id)
-                if (chunk) {
-                  setTooltip({
-                    text: `${(result.score * 100).toFixed(0)}% match · ${chunk.text.slice(0, 70)}…`,
-                    x: e.clientX, y: e.clientY,
-                  })
-                }
-              }}
-              onMouseLeave={() => { onSentenceHover?.(null); setTooltip(null) }}
-            >
-              {result.sentence}{" "}
-            </span>
-          )
-        })}
+      <p className="text-sm leading-[1.9] text-zinc-300">
+        {grounding.map((result, i) => (
+          <span
+            key={i}
+            className={cn(
+              "px-0.5 py-px rounded-sm cursor-default transition-colors",
+              result.grounded
+                ? "bg-emerald-500/12 border-b border-emerald-500/30 hover:bg-emerald-500/20"
+                : "bg-red-500/10 border-b border-red-500/30 hover:bg-red-500/18"
+            )}
+            onMouseEnter={(e) => handleMouseEnter(e, result)}
+            onMouseLeave={() => { onSentenceHover?.(null); setTooltip(null) }}
+          >
+            {result.sentence}{" "}
+          </span>
+        ))}
       </p>
       {tooltip && (
-        <div style={{
-          position: "fixed", zIndex: 50, maxWidth: 300,
-          fontSize: 11, padding: "6px 10px",
-          borderRadius: 5, pointerEvents: "none",
-          background: "var(--surface2)", border: "1px solid var(--border2)",
-          color: "var(--text2)", fontFamily: "'JetBrains Mono', monospace",
-          left: tooltip.x + 10, top: tooltip.y - 30,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-        }}>
+        <div
+          className="fixed z-50 max-w-[280px] text-xs py-1.5 px-2.5 rounded-md pointer-events-none font-mono bg-zinc-800 border border-zinc-700 text-zinc-300 shadow-xl"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
           {tooltip.text}
         </div>
       )}
-      <div style={{
-        display: "flex", gap: 16, marginTop: 12,
-        fontSize: 10, color: "var(--muted)", alignItems: "center",
-        fontFamily: "'JetBrains Mono', monospace",
-      }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: "rgba(0,212,170,0.5)", display: "inline-block" }} />
+      <div className="flex gap-4 mt-3 text-[10px] text-zinc-500 items-center font-mono">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-sm bg-emerald-500/50" />
           Grounded
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: "rgba(255,68,102,0.5)", display: "inline-block" }} />
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-sm bg-red-500/50" />
           Hallucinated
         </span>
-        <span style={{ marginLeft: "auto", color: pct >= 70 ? "var(--teal)" : pct >= 50 ? "var(--gold)" : "var(--red)" }}>
-          {groundedCount}/{grounding.length} sentences · {pct}% grounded
+        <span className={cn("ml-auto", pct >= 70 ? "text-emerald-400" : pct >= 50 ? "text-yellow-400" : "text-red-400")}>
+          {groundedCount}/{grounding.length} · {pct}% grounded
         </span>
       </div>
     </div>
