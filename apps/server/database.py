@@ -118,6 +118,15 @@ async def update_grounding_scores(event_id: str, scores: list[dict]) -> None:
         )
 
 
+async def update_session_grounding(trace_id: str, score: float) -> None:
+    """Update overall_grounding_score for a session by trace_id."""
+    async with _write_lock:
+        get_db().execute(
+            "UPDATE query_sessions SET overall_grounding_score = ? WHERE trace_id = ?",
+            [score, trace_id]
+        )
+
+
 async def delete_trace(trace_id: str) -> int:
     """Deletes all events and the session for a trace. Returns 1 on success."""
     async with _write_lock:

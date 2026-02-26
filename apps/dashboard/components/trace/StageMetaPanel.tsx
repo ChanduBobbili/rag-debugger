@@ -1,6 +1,6 @@
 "use client"
 
-import type { RAGEvent } from "@/lib/types"
+import type { ChunkScore, RAGEvent } from "@/lib/types"
 import { Card } from "@/components/ui/card"
 
 interface Props {
@@ -38,7 +38,7 @@ export default function StageMetaPanel({ event }: Props) {
         <MetaItem label="Index Type" value={String(meta.index_type || "vector")} />
         <MetaItem label="Top Score" value={
           event.chunks?.length
-            ? Math.max(...event.chunks.map(c => c.cosine_score)).toFixed(3)
+            ? Math.max(...event?.chunks?.map?.((c: ChunkScore) => c?.cosine_score ?? 0) ?? []).toFixed(3)
             : "—"
         } />
       </div>

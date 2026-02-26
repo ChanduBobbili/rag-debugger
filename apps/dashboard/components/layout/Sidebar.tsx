@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
+import packageJson from "../../package.json"
 
 interface SidebarProps {
   collapsed: boolean
@@ -42,7 +43,7 @@ export default function Sidebar({ collapsed, onToggle, connected, traceCount }: 
         {!collapsed && (
           <div className="flex items-baseline gap-2 min-w-0">
             <span className="font-semibold text-sm text-zinc-100 truncate">RAG Debugger</span>
-            <span className="text-[10px] text-zinc-600 font-mono">v0.2</span>
+            <span className="text-[10px] text-zinc-600 font-mono">v{packageJson.version}</span>
           </div>
         )}
       </div>

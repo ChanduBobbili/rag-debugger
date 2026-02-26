@@ -168,9 +168,11 @@ async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
 
 
 @rag_trace("generate")
-async def generate_answer(query: str, context: str) -> str:
+async def generate_answer(query: str, context: str, simulate_error: bool = False) -> str:
     """Simulate LLM generation."""
-    await asyncio.sleep(random.uniform(0.2, 0.8))  # LLM latency
+    await asyncio.sleep(random.uniform(0.05, 0.15))
+    if simulate_error:
+        raise RuntimeError("Simulated context window exceeded error")
 
     # Build a plausible answer from the context chunks
     answers = {
@@ -216,14 +218,10 @@ async def run_rag_pipeline(query: str, k: int = 5, simulate_error: bool = False)
         reranked = await rerank_chunks(query, chunks)
         print(f"     → Top rerank score: {reranked[0]['rerank_score']:.3f}")
 
-        # Simulate error if requested
-        if simulate_error:
-            raise RuntimeError("Simulated context window exceeded error")
-
         # Stage 4: Generate
         context = "\n\n".join(c["text"] for c in reranked[:3])
         print("  🤖 Generating answer...")
-        answer = await generate_answer(query, context)
+        answer = await generate_answer(query, context, simulate_error=simulate_error)
         print(f"     → {len(answer)} chars generated")
 
         elapsed = (time.time() - start) * 1000
@@ -261,7 +259,10 @@ async def main():
 
     if args.query:
         # Single custom query
-        await run_rag_pipeline(args.query, k=args.k, simulate_error=args.error)
+        try:
+            await run_rag_pipeline(args.query, k=args.k, simulate_error=args.error)
+        except Exception:
+            pass
     elif args.loop:
         # Continuous mode
         print("  Running in loop mode (Ctrl+C to stop)...\n")
