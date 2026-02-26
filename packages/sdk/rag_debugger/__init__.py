@@ -5,6 +5,8 @@ from .decorators import rag_trace
 from .context import set_trace_id, set_query_id, reset_context
 from .context import _trace_id, _query_id
 
+__version__ = "0.1.0"
+
 _initialized = False
 
 
@@ -72,4 +74,4 @@ async def trace(
         _query_id.reset(query_token)
 
 
-__all__ = ["init", "rag_trace", "new_trace", "reset_context", "trace"]
+__all__ = ["init", "rag_trace", "new_trace", "reset_context", "trace", "stop_worker", "__version__"]

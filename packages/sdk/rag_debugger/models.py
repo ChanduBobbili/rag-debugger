@@ -9,7 +9,7 @@ class ChunkScore(BaseModel):
     cosine_score: float
     rerank_score: float | None = None
     final_rank: int
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
 
 class RAGEvent(BaseModel):
@@ -24,4 +24,4 @@ class RAGEvent(BaseModel):
     chunks: list[ChunkScore] | None = None
     generated_answer: str | None = None
     error: str | None = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)

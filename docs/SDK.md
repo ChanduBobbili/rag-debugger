@@ -1,6 +1,8 @@
 # RAG Debugger — SDK Documentation
 
 > Lightweight Python SDK for instrumenting RAG pipelines with a single decorator.
+>
+> **Version**: `0.1.0` · **Python**: `≥3.10` · **License**: MIT
 
 ---
 
@@ -13,7 +15,7 @@
 - [Project Structure](#project-structure)
 - [Module Breakdown](#module-breakdown)
   - [\_\_init\_\_.py — Public API](#__init__py--public-api)
-  - [decorators.py — @rag_trace](#decoratorspy--rag_trace)
+  - [decorators.py — @rag\_trace](#decoratorspy--rag_trace)
   - [context.py — Trace Propagation](#contextpy--trace-propagation)
   - [emitter.py — Async Event Emitter](#emitterpy--async-event-emitter)
   - [scrubber.py — PII Redaction](#scrubberpy--pii-redaction)
@@ -38,12 +40,13 @@ The RAG Debugger SDK is a **zero-overhead Python library** that instruments RAG 
 - **Zero config** — auto-generates `trace_id` and `query_id` using `ContextVar`
 - **Safe** — PII is scrubbed before emission; errors in the SDK never crash your pipeline
 - **Framework-agnostic** — works with any Python code, plus adapters for LangChain, LlamaIndex, and OpenAI
+- **Type-safe** — ships with `py.typed` marker (PEP 561) for full type-checker support
 
 ---
 
 ## Architecture Overview
 
-```
+```text
 Your RAG Pipeline
        │
    @rag_trace("embed")     ◄── Decorator captures inputs/outputs/timing
@@ -75,20 +78,22 @@ Your RAG Pipeline
 
 ```bash
 # Core SDK
-pip install -e packages/sdk
+pip install rag-debugger
 
 # With LangChain adapter
-pip install -e "packages/sdk[langchain]"
+pip install "rag-debugger[langchain]"
 
 # With LlamaIndex adapter
-pip install -e "packages/sdk[llamaindex]"
+pip install "rag-debugger[llamaindex]"
 
 # With OpenAI adapter
-pip install -e "packages/sdk[openai]"
+pip install "rag-debugger[openai]"
 
 # All adapters
-pip install -e "packages/sdk[all]"
+pip install "rag-debugger[all]"
 ```
+
+**Requirements**: Python ≥ 3.10. Core dependencies: `httpx ≥ 0.24.0`, `pydantic ≥ 2.0.0`.
 
 ---
 
@@ -125,21 +130,23 @@ answer = await generate_answer(query, context)
 
 ## Project Structure
 
-```
+```text
 packages/sdk/
-├── pyproject.toml                # Dependencies and build config
+├── pyproject.toml                # Package metadata, dependencies, build config
+├── README.md                     # PyPI project description
 └── rag_debugger/
-    ├── __init__.py               # Public API: init(), rag_trace, new_trace(), reset_context()
+    ├── __init__.py               # Public API: init(), rag_trace, new_trace(), trace(), etc.
     ├── decorators.py             # @rag_trace decorator implementation
     ├── context.py                # ContextVar-based trace/query ID propagation
-    ├── emitter.py                # Async HTTP event emitter with retry
-    ├── scrubber.py               # PII redaction (emails, phones, API keys)
-    ├── models.py                 # Pydantic event schemas
+    ├── emitter.py                # Async HTTP event emitter with retry + drop warnings
+    ├── scrubber.py               # PII redaction (emails, phones, SSNs, API keys)
+    ├── models.py                 # Pydantic event schemas (RAGEvent, ChunkScore)
+    ├── py.typed                  # PEP 561 type-checker marker
     └── adapters/
         ├── __init__.py
         ├── langchain.py          # LangChain BaseCallbackHandler
         ├── llamaindex.py         # LlamaIndex callback handler
-        └── openai.py             # OpenAI client wrapper
+        └── openai.py             # OpenAI async client wrapper
 ```
 
 ---
@@ -148,17 +155,20 @@ packages/sdk/
 
 ### `__init__.py` — Public API
 
-Exposes four functions and starts the background emitter worker:
+Exposes the SDK's public surface. The background emitter worker starts **lazily** on the first `emit()` call, so `init()` is safe to call at import time.
 
-| Export | Description |
-|--------|-------------|
-| `init(dashboard_url)` | Set the server URL. Call once at startup |
-| `rag_trace(stage)` | Decorator for instrumenting pipeline functions |
+| Export             | Description                                                        |
+| ------------------ | ------------------------------------------------------------------ |
+| `init(dashboard_url)` | Set the server URL. Call once at startup                        |
+| `rag_trace(stage)` | Decorator for instrumenting pipeline functions                    |
 | `new_trace(trace_id?, query_id?)` | Set explicit IDs (optional — auto-generated otherwise) |
-| `reset_context()` | Clear current trace/query context for a new request |
+| `trace(trace_id?, query_id?)` | Async context manager for scoped trace control            |
+| `reset_context()`  | Clear current trace/query context for a new request               |
+| `stop_worker()`    | Gracefully drain the event queue and stop the background worker   |
+| `__version__`      | Package version string (e.g. `"0.1.0"`)                          |
 
 ```python
-from rag_debugger import init, rag_trace, new_trace, reset_context
+from rag_debugger import init, rag_trace, new_trace, trace, reset_context, stop_worker, __version__
 ```
 
 ---
@@ -169,15 +179,15 @@ The core decorator that instruments any sync or async function.
 
 #### What It Captures
 
-| Data | Source | Stage |
-|------|--------|-------|
-| `trace_id`, `query_id` | `ContextVar` (auto-generated) | All |
-| `query_text` | First `str` argument | All |
-| `ts_start`, `duration_ms` | `time.time()` before/after | All |
-| `error` | Exception message (if raised) | All |
-| `query_vector` | Return value (if `list[float]`) | `embed` |
-| `chunks` | Return value (if `list[dict]`) | `retrieve`, `rerank` |
-| `generated_answer` | Return value (if `str`) | `generate` |
+| Data                         | Source                            | Stage                  |
+| ---------------------------- | --------------------------------- | ---------------------- |
+| `trace_id`, `query_id`      | `ContextVar` (auto-generated)     | All                    |
+| `query_text`                 | First `str` argument (truncated to 500 chars) | All          |
+| `ts_start`, `duration_ms`   | `time.time()` before/after        | All                    |
+| `error`                      | Exception message (if raised)     | All                    |
+| `query_vector`               | Return value (if `list[float]`)   | `embed`                |
+| `chunks`                     | Return value (if `list[dict]`)    | `retrieve`, `rerank`   |
+| `generated_answer`           | Return value (if `str`)           | `generate`             |
 
 #### Behavior
 
@@ -185,10 +195,22 @@ The core decorator that instruments any sync or async function.
 2. Records `ts_start` timestamp
 3. Calls the wrapped function
 4. Calculates `duration_ms`
-5. Enriches the event with stage-specific data
+5. Enriches the event with stage-specific data (vectors, chunks, answers)
 6. Emits the event asynchronously (non-blocking)
-7. After `generate` stage, also emits a `session_complete` event
-8. If the function throws, captures the error and **re-raises** it
+7. After `generate` stage, also emits a `session_complete` summary event
+8. If the function throws, captures the error, cleans up tracking state, and **re-raises** it
+
+#### Memory Safety
+
+The decorator tracks per-query stages in an `OrderedDict` with a safety cap of 500 entries. When exceeded, the oldest 100 entries are evicted (FIFO). On errors, query tracking state is cleaned up immediately.
+
+#### Chunk Handling
+
+The `_to_chunk_dict()` helper supports three input formats:
+
+- **LangChain `Document`** objects (with `page_content` and `metadata` attributes)
+- **Plain `dict`** with `text`/`page_content`, `score`/`cosine_score` keys
+- **Any other object** — converted to string (truncated to 500 chars)
 
 #### Example
 
@@ -203,30 +225,41 @@ async def search(query: str, k: int = 10):
     ]
 ```
 
+#### Sync Function Support
+
+The decorator works with both async and sync functions. Sync functions use `asyncio.run()` internally:
+
+```python
+@rag_trace("retrieve")
+def sync_retrieve(query: str):
+    return db.query(query)  # Sync function — fully supported
+```
+
+> **Note**: If a sync-decorated function is called inside an already-running async event loop (e.g. FastAPI, Django async views), the SDK will raise a clear `RuntimeError` advising you to use `async def` with `await` instead.
+
 ---
 
 ### `context.py` — Trace Propagation
 
 Uses Python's `contextvars.ContextVar` for automatic trace correlation across async calls.
 
-| Function | Description |
-|----------|-------------|
-| `get_or_create_trace_id()` | Returns current `trace_id` or generates a new UUID |
-| `get_or_create_query_id()` | Returns current `query_id` or generates a new UUID |
-| `set_trace_id(id)` | Explicitly set the trace ID |
-| `set_query_id(id)` | Explicitly set the query ID |
-| `new_trace(trace_id?, query_id?)` | Set both IDs (UUID defaults if None) |
-| `reset_context()` | Clear both IDs for a new request |
+| Function                      | Description                                          |
+| ----------------------------- | ---------------------------------------------------- |
+| `get_or_create_trace_id()`    | Returns current `trace_id` or generates a new UUID   |
+| `get_or_create_query_id()`    | Returns current `query_id` or generates a new UUID   |
+| `set_trace_id(id)`            | Explicitly set the trace ID                          |
+| `set_query_id(id)`            | Explicitly set the query ID                          |
+| `reset_context()`             | Clear both IDs for a new request                     |
 
 #### How ContextVar Works
 
 ```python
 # Request 1 (coroutine A)
-trace_id = get_or_create_trace_id()  # "tr-abc123"
-# All @rag_trace calls within this coroutine tree use "tr-abc123"
+trace_id = get_or_create_trace_id()  # "a3f8d1b6-..."
+# All @rag_trace calls within this coroutine tree use this ID
 
 # Request 2 (coroutine B, concurrent)
-trace_id = get_or_create_trace_id()  # "tr-def456"
+trace_id = get_or_create_trace_id()  # "b4c9e2c7-..."
 # Completely isolated from Request 1
 ```
 
@@ -234,21 +267,21 @@ trace_id = get_or_create_trace_id()  # "tr-def456"
 
 ### `emitter.py` — Async Event Emitter
 
-Non-blocking HTTP emitter using `asyncio.Queue` and a background worker.
+Non-blocking HTTP emitter using `asyncio.Queue` and a background worker. The worker starts **lazily** on the first `emit()` call, with a double-checked lock to prevent race conditions.
 
 #### Flow
 
-```
+```text
 @rag_trace emits event
        │
        ▼
-  asyncio.Queue (max 10,000)
+  scrubber.scrub(payload)
+       │
+       ▼
+  asyncio.Queue (max 1,000)
        │
        ▼
   Background worker (runs forever)
-       │
-       ▼
-  scrubber.scrub(payload)
        │
        ▼
   httpx.AsyncClient.post("/events")
@@ -259,13 +292,21 @@ Non-blocking HTTP emitter using `asyncio.Queue` and a background worker.
 
 #### Retry Logic
 
-| Attempt | Delay |
-|---------|-------|
-| 1 | Immediate |
-| 2 | 500ms |
-| 3 | 1000ms |
+| Attempt | Delay      |
+| ------- | ---------- |
+| 1       | Immediate  |
+| 2       | 500ms      |
+| 3       | 1000ms     |
 
-If all retries fail, the event is **silently dropped** (never crashes your pipeline).
+#### Drop Behavior
+
+If the queue is full (1,000 events), new events are **dropped with a warning** printed to `stderr`:
+
+```text
+[rag-debugger] WARNING: event dropped (total dropped: 1) — is the server running at http://localhost:7777?
+```
+
+Warnings repeat every 50 dropped events to avoid log spam. Events are never silently lost.
 
 ---
 
@@ -273,27 +314,33 @@ If all retries fail, the event is **silently dropped** (never crashes your pipel
 
 Automatically redacts sensitive information before events are emitted.
 
-| Pattern | Example | Replacement |
-|---------|---------|-------------|
-| Email addresses | `user@example.com` | `[EMAIL_REDACTED]` |
-| Phone numbers | `+1-555-123-4567` | `[PHONE_REDACTED]` |
-| SSNs | `123-45-6789` | `[SSN_REDACTED]` |
-| API keys | `sk-abc123...` | `[API_KEY_REDACTED]` |
+| Pattern           | Example            | Replacement |
+| ----------------- | ------------------ | ----------- |
+| Email addresses   | `user@example.com` | `[EMAIL]`   |
+| Phone numbers     | `555-123-4567`     | `[PHONE]`   |
+| SSNs              | `123-45-6789`      | `[SSN]`     |
+| API keys          | `sk-abc123...`     | `[API_KEY]` |
 
-The scrubber recursively walks all string values in the event payload (including nested dicts and lists).
+The scrubber recursively walks all string values in the event payload (including nested dicts and lists). PII scrubbing is always enabled and cannot be disabled.
 
 ---
 
 ### `models.py` — Event Schemas
 
-| Model | Fields |
-|-------|--------|
-| `ChunkScore` | `chunk_id`, `text`, `cosine_score`, `rerank_score`, `final_rank`, `metadata` |
-| `RAGEvent` | `id`, `trace_id`, `query_id`, `stage`, `ts_start`, `duration_ms`, `query_text`, `query_vector`, `chunks`, `generated_answer`, `grounding_scores`, `error`, `metadata` |
+Pydantic v2 models used for event validation:
+
+| Model        | Key Fields                                                                                                        |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `ChunkScore` | `chunk_id`, `text`, `cosine_score`, `rerank_score` (optional), `final_rank`, `metadata`                          |
+| `RAGEvent`   | `id`, `trace_id`, `query_id`, `stage`, `ts_start`, `duration_ms`, `query_text`, `query_vector`, `chunks`, `generated_answer`, `error`, `metadata` |
+
+> **Note**: Both models use `Field(default_factory=dict)` for the `metadata` field to avoid mutable default pitfalls.
 
 ---
 
 ## Framework Adapters
+
+All adapters are optional dependencies. Importing them without the corresponding library installed raises a helpful `ImportError` with installation instructions.
 
 ### LangChain Adapter
 
@@ -311,10 +358,10 @@ chain.invoke({"query": "What is RAG?"}, config={"callbacks": [handler]})
 
 #### Mapped Events
 
-| LangChain Event | RAG Stage |
-|-----------------|-----------|
-| `on_retriever_end` | `retrieve` |
-| `on_llm_end` | `generate` |
+| LangChain Event      | RAG Stage    |
+| -------------------- | ------------ |
+| `on_retriever_end`   | `retrieve`   |
+| `on_llm_end`         | `generate`   |
 
 ---
 
@@ -336,34 +383,37 @@ index = VectorStoreIndex.from_documents(docs, callback_manager=callback_manager)
 
 #### Mapped Events
 
-| LlamaIndex Event | RAG Stage |
-|------------------|-----------|
-| `EMBEDDING` | `embed` |
-| `RETRIEVE` | `retrieve` |
-| `RERANKING` | `rerank` |
-| `LLM` | `generate` |
+| LlamaIndex Event | RAG Stage    |
+| ---------------- | ------------ |
+| `EMBEDDING`      | `embed`      |
+| `RETRIEVE`       | `retrieve`   |
+| `RERANKING`      | `rerank`     |
+| `LLM`            | `generate`   |
 
 ---
 
 ### OpenAI Adapter
 
-Wraps the OpenAI client to auto-instrument embedding and completion calls.
+Wraps an OpenAI async client to auto-instrument embedding and completion calls.
 
 ```python
+import openai
 from rag_debugger import init
 from rag_debugger.adapters.openai import RAGDebuggerOpenAI
 
 init(dashboard_url="http://localhost:7777")
 
-client = RAGDebuggerOpenAI()
+# Pass your AsyncOpenAI client
+client = RAGDebuggerOpenAI(openai.AsyncOpenAI())
 
 # Embedding calls → "embed" events
-embedding = client.embed("What is RAG?")
+embedding = await client.embed("What is RAG?")
 
 # Completion calls → "generate" events
-response = client.complete(
-    messages=[{"role": "user", "content": "Explain RAG"}],
-    model="gpt-4",
+response = await client.complete(
+    prompt="Explain RAG",
+    system="You are a helpful assistant.",
+    model="gpt-4o-mini",
 )
 ```
 
@@ -371,9 +421,9 @@ response = client.complete(
 
 ## API Reference
 
-### `init(dashboard_url: str) -> None`
+### `init(dashboard_url: str = "http://localhost:7777") -> None`
 
-Initialize the SDK. Must be called once before any `@rag_trace` calls.
+Initialize the SDK. Configures the server URL. Safe to call at import time — the background worker starts lazily on first event.
 
 ```python
 init(dashboard_url="http://localhost:7777")
@@ -396,12 +446,45 @@ Explicitly set trace and query IDs. Both default to auto-generated UUIDs if `Non
 new_trace(trace_id="custom-trace-123")
 ```
 
+### `trace(trace_id: str | None, query_id: str | None)`
+
+Async context manager for scoped trace control. Auto-generates IDs if not provided. Supports nesting — the outer context is restored when the inner block exits.
+
+```python
+import rag_debugger
+
+async with rag_debugger.trace(trace_id="req-123") as t:
+    print(t.trace_id)   # "req-123"
+    print(t.query_id)   # auto-generated UUID
+    result = await my_rag_pipeline(query)
+# Context is automatically restored after the block
+```
+
+The returned `_TraceHandle` object exposes `trace_id` and `query_id` attributes.
+
 ### `reset_context() -> None`
 
 Clear the current trace/query context. Call between requests to start a fresh trace.
 
 ```python
 reset_context()
+```
+
+### `stop_worker() -> None`
+
+Gracefully drain the event queue and stop the background emitter. Call during application shutdown to ensure all pending events are sent.
+
+```python
+await stop_worker()
+```
+
+### `__version__: str`
+
+The package version string. Useful for logging and diagnostics.
+
+```python
+import rag_debugger
+print(rag_debugger.__version__)  # "0.1.0"
 ```
 
 ---
@@ -429,24 +512,43 @@ await step2()
 reset_context()
 ```
 
-### Sync Function Support
-
-The decorator works with both async and sync functions:
+### Scoped Tracing with Context Manager
 
 ```python
-@rag_trace("retrieve")
-def sync_retrieve(query: str):
-    return db.query(query)  # Sync function — fully supported
+import rag_debugger
+
+# Nested trace contexts work correctly
+async with rag_debugger.trace(trace_id="outer") as outer:
+    await embed_query("What is RAG?")
+
+    async with rag_debugger.trace(trace_id="inner") as inner:
+        await retrieve_chunks(vector)
+    # inner context exits, outer context is restored
+
+    await generate_answer(query, context)
+# outer context exits, original context is restored
+```
+
+### Graceful Shutdown
+
+```python
+import rag_debugger
+
+# Ensure all pending events are sent before exit
+async def shutdown():
+    await rag_debugger.stop_worker()
 ```
 
 ---
 
 ## Configuration
 
-| Setting | Default | Set Via |
-|---------|---------|---------|
-| Dashboard URL | `http://localhost:7777` | `init(dashboard_url=...)` |
-| Queue size | 10,000 events | Hardcoded (emitter.py) |
-| Max retries | 3 | Hardcoded (emitter.py) |
-| PII scrubbing | Enabled | Always on |
-| Trace ID format | UUID hex (first 12 chars) | Auto-generated |
+| Setting          | Default                   | Set Via                    |
+| ---------------- | ------------------------- | -------------------------- |
+| Dashboard URL    | `http://localhost:7777`   | `init(dashboard_url=...)` |
+| Queue size       | 1,000 events             | Hardcoded (emitter.py)     |
+| Max retries      | 3                        | Hardcoded (emitter.py)     |
+| Retry timeout    | 10s per request          | Hardcoded (emitter.py)     |
+| PII scrubbing    | Enabled                  | Always on                  |
+| Trace ID format  | UUID v4                  | Auto-generated             |
+| Python version   | ≥ 3.10                   | pyproject.toml             |

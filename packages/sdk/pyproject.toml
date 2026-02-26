@@ -1,20 +1,23 @@
 [project]
 name = "rag-debugger"
-version = "0.0.1"
+version = "0.1.0"
 description = "Real-time debugging SDK for RAG pipelines"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+authors = [
+    {name = "Chandu Bobbili"},
+]
 keywords = ["rag", "debugging", "llm", "observability", "tracing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Debuggers",
 ]

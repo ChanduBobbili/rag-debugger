@@ -15,6 +15,14 @@ on:
         options:
           - "false"
           - "true"
+      test_pypi:
+        description: "Publish to TestPyPI instead of PyPI"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   build-and-publish:
@@ -48,8 +56,21 @@ jobs:
           name: python-package-distributions
           path: packages/sdk/dist/
 
+      - name: Verify package
+        run: |
+          pip install dist/rag_debugger-*.whl
+          python -c "import rag_debugger; print(f'rag-debugger {rag_debugger.__version__}')"
+
+      - name: Publish to TestPyPI
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.test_pypi == 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/sdk/dist/
+          repository-url: https://test.pypi.org/legacy/
+          print-hash: true
+
       - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.test_pypi != 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: packages/sdk/dist/
