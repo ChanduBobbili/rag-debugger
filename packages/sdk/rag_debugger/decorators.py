@@ -73,8 +73,12 @@ def rag_trace(stage: RAGStage):
             except Exception as e:
                 event["duration_ms"] = (time.time() - ts_start) * 1000
                 event["error"] = str(e)
-                _query_stages.pop(query_id, None)  # BUG 1: clean up on error
+                stages = _query_stages.pop(query_id, [])
                 await emit(event)
+                if stage == "generate":
+                    await _emit_error_session_complete(
+                        query_id, trace_id, event, stages
+                    )
                 raise
 
         @wraps(func)
@@ -176,5 +180,25 @@ async def _emit_session_complete(
         "metadata": {
             "stage_count": len(stages),
             "has_error": False,
+        },
+    })
+
+
+async def _emit_error_session_complete(
+    query_id: str, trace_id: str, error_event: dict, stages: list
+) -> None:
+    total_ms = sum(s["duration_ms"] for s in stages) + error_event.get("duration_ms", 0)
+    await emit({
+        "id": str(uuid.uuid4()),
+        "trace_id": trace_id,
+        "query_id": query_id,
+        "stage": "session_complete",
+        "ts_start": time.time(),
+        "duration_ms": total_ms,
+        "query_text": error_event.get("query_text"),
+        "error": error_event.get("error"),
+        "metadata": {
+            "stage_count": len(stages) + 1,
+            "has_error": True,
         },
     })
