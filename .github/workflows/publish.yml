@@ -1,31 +1,56 @@
-name: Publish to PyPI
+name: Publish SDK to PyPI
 
 on:
   push:
     tags:
-      - "v*.*.*"          # publish only when version tags are pushed
+      - "v*.*.*"           # auto-publish on version tags like v0.1.0
+
+  workflow_dispatch:        # allow manual trigger from GitHub Actions UI
+    inputs:
+      dry_run:
+        description: "Dry run (build only, skip upload)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   build-and-publish:
-      runs-on: ubuntu-latest
-      permissions:
-        id-token: write   # required for OIDC
-        contents: read
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+    permissions:
+      id-token: write      # required for trusted publishing (OIDC)
+      contents: read
 
-      steps:
-        - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-        - uses: actions/setup-python@v5
-          with:
-            python-version: "3.10" # Or whatever the version the package needs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-        - name: Install build backend
-          run: python -m pip install --upgrade pip build
+      - name: Install build tools
+        run: python -m pip install --upgrade pip build twine
 
-        - name: Build dists
-          run: python -m build
+      - name: Build dist and wheel
+        run: python -m build
 
-        - name: Publish to PyPI
-          uses: pypa/gh-action-pypi-publish@release/v1
-          with:
-            print_hash: true
+      - name: Verify distributions
+        run: twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: packages/sdk/dist/
+
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/sdk/dist/
+          print-hash: true

@@ -1,7 +1,23 @@
 [project]
 name = "rag-debugger"
 version = "0.0.1"
+description = "Real-time debugging SDK for RAG pipelines"
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.9"
+keywords = ["rag", "debugging", "llm", "observability", "tracing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Debuggers",
+]
 dependencies = [
     "httpx>=0.24.0",
     "pydantic>=2.0.0",
@@ -12,6 +28,11 @@ langchain = ["langchain-core>=0.1.0"]
 llamaindex = ["llama-index-core>=0.10.0"]
 openai = ["openai>=1.0.0"]
 all = ["langchain-core>=0.1.0", "llama-index-core>=0.10.0", "openai>=1.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/ChanduBobbili/rag-debugger"
+Repository = "https://github.com/ChanduBobbili/rag-debugger"
+Issues = "https://github.com/ChanduBobbili/rag-debugger/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["rag_debugger"]
