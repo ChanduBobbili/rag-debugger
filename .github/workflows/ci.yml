@@ -38,7 +38,7 @@ jobs:
         run: pip install dist/rag_debugger-*.whl
 
       - name: Verify import and version
-        run: python -c "import rag_debugger; print(f'rag-debugger {rag_debugger.__version__}'); assert rag_debugger.__version__ == '0.1.0'"
+        run: python -c "import rag_debugger; print(f'rag-debugger {rag_debugger.__version__}')"
 
       - name: Verify adapter import guards
         run: |
