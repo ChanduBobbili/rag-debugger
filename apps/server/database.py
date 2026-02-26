@@ -109,6 +109,39 @@ async def upsert_session(session: dict) -> None:
         ])
 
 
+async def update_grounding_scores(event_id: str, scores: list[dict]) -> None:
+    """Update grounding scores for an event. Public API for events router."""
+    async with _write_lock:
+        get_db().execute(
+            "UPDATE rag_events SET grounding_scores = ? WHERE id = ?",
+            [json.dumps(scores), event_id]
+        )
+
+
+async def delete_trace(trace_id: str) -> int:
+    """Deletes all events and the session for a trace. Returns 1 on success."""
+    async with _write_lock:
+        db = get_db()
+        db.execute("DELETE FROM rag_events WHERE trace_id = ?", [trace_id])
+        db.execute("DELETE FROM query_sessions WHERE trace_id = ?", [trace_id])
+        return 1
+
+
+async def cleanup_old_traces(retention_days: int) -> dict:
+    """Delete traces older than retention_days. Returns summary."""
+    async with _write_lock:
+        db = get_db()
+        db.execute("""
+            DELETE FROM rag_events
+            WHERE created_at < current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
+        """, [retention_days])
+        db.execute("""
+            DELETE FROM query_sessions
+            WHERE created_at < current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
+        """, [retention_days])
+    return {"retention_days": retention_days}
+
+
 # ---------------------------------------------------------------------------
 # Read helpers — no lock needed
 # ---------------------------------------------------------------------------

@@ -4,11 +4,15 @@ from routers.ws import ws_manager
 import database
 import grounding
 import asyncio
-import json
-from concurrent.futures import ProcessPoolExecutor
 
 router = APIRouter()
-_process_pool = ProcessPoolExecutor(max_workers=2)
+_process_pool = None
+
+
+def set_process_pool(pool) -> None:
+    """Receive the ProcessPoolExecutor from the lifespan handler."""
+    global _process_pool
+    _process_pool = pool
 
 
 @router.post("/events", response_model=EventIngestResponse)
@@ -57,6 +61,9 @@ async def _compute_and_store_grounding(
     chunks: list[dict],
 ) -> None:
     """Runs grounding in ProcessPoolExecutor, then updates the event."""
+    if _process_pool is None:
+        print("Grounding skipped: process pool not initialized")
+        return
     loop = asyncio.get_event_loop()
     try:
         results = await loop.run_in_executor(
@@ -65,12 +72,8 @@ async def _compute_and_store_grounding(
             answer,
             chunks,
         )
-        # Update event with grounding scores
-        async with database._write_lock:
-            database.get_db().execute(
-                "UPDATE rag_events SET grounding_scores = ? WHERE id = ?",
-                [json.dumps(results), event_id],
-            )
+        # Update event with grounding scores via public API
+        await database.update_grounding_scores(event_id, results)
 
         # Broadcast grounding update
         await ws_manager.broadcast(trace_id, {

@@ -16,7 +16,7 @@ async def get_metrics(days: int = Query(7, ge=1, le=90)) -> dict:
             AVG(total_duration_ms) as avg_latency_ms,
             SUM(CASE WHEN has_error THEN 1 ELSE 0 END) as error_count
         FROM query_sessions
-        WHERE created_at >= NOW() - INTERVAL (?) DAY
+        WHERE created_at >= current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
         GROUP BY DATE_TRUNC('day', created_at)
         ORDER BY date
     """, [days])
@@ -29,7 +29,7 @@ async def get_metrics(days: int = Query(7, ge=1, le=90)) -> dict:
             AVG(total_duration_ms) as avg_latency,
             SUM(CASE WHEN has_error THEN 1 ELSE 0 END) * 100.0 / GREATEST(COUNT(*), 1) as failure_rate
         FROM query_sessions
-        WHERE created_at >= NOW() - INTERVAL (?) DAY
+        WHERE created_at >= current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
     """, [days]).fetchone()
 
     worst_cursor = db.execute("""
@@ -57,13 +57,18 @@ async def get_metrics(days: int = Query(7, ge=1, le=90)) -> dict:
 async def chunk_distribution() -> list[dict]:
     db = database.get_db()
     cursor = db.execute("""
-        SELECT
-            ROUND(cosine_score * 10) / 10 as score_bucket,
-            COUNT(*) as count
-        FROM (
-            SELECT UNNEST(json_extract(chunks, '$[*].cosine_score'))::FLOAT as cosine_score
-            FROM rag_events WHERE chunks IS NOT NULL
+        WITH chunk_data AS (
+            SELECT json_extract(chunks, '$[' || i.idx || '].cosine_score') as score
+            FROM rag_events,
+            UNNEST(range(json_array_length(chunks))) AS i(idx)
+            WHERE chunks IS NOT NULL AND chunks != 'null'
         )
-        GROUP BY score_bucket ORDER BY score_bucket
+        SELECT
+            ROUND(score::FLOAT * 10) / 10 as score_bucket,
+            COUNT(*) as count
+        FROM chunk_data
+        WHERE score IS NOT NULL
+        GROUP BY score_bucket
+        ORDER BY score_bucket
     """)
     return database._rows_to_dicts(cursor)

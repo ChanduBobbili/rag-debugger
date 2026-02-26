@@ -66,3 +66,9 @@ async def get_grounding(trace_id: str) -> dict:
         "answer": row[0],
         "grounding": json.loads(row[1]) if row[1] else [],
     }
+
+
+@router.delete("/traces/{trace_id}")
+async def delete_trace(trace_id: str) -> dict:
+    await database.delete_trace(trace_id)
+    return {"ok": True, "deleted": trace_id}
