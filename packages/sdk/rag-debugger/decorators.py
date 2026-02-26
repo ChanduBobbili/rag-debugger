@@ -1,6 +1,7 @@
 import asyncio
 import time
 import uuid
+from collections import OrderedDict
 from functools import wraps
 from typing import Literal
 from .context import get_or_create_trace_id, get_or_create_query_id
@@ -8,8 +9,21 @@ from .emitter import emit
 
 RAGStage = Literal["embed", "retrieve", "rerank", "generate"]
 
-# Track stages per query for session_complete calculation
-_query_stages: dict[str, list] = {}
+# Track stages per query for session_complete calculation.
+# OrderedDict for FIFO eviction when cap is exceeded (BUG 1 fix).
+_query_stages: OrderedDict[str, list] = OrderedDict()
+_STAGES_CAP = 500
+_STAGES_EVICT = 100
+
+MAX_VECTOR_DIMS = 4096  # Safety cap — no real model exceeds this
+
+
+def _enforce_stages_cap() -> None:
+    """Evict oldest entries if _query_stages exceeds the safety cap."""
+    if len(_query_stages) > _STAGES_CAP:
+        for _ in range(_STAGES_EVICT):
+            if _query_stages:
+                _query_stages.popitem(last=False)
 
 
 def rag_trace(stage: RAGStage):
@@ -18,6 +32,10 @@ def rag_trace(stage: RAGStage):
     Works with both async and sync functions.
     Auto-generates trace_id and query_id via ContextVar.
     Emits session_complete after 'generate' stage.
+
+    Sync function support is best-effort. If the decorated sync function
+    is called inside an async framework (FastAPI, Django async views, etc.),
+    use ``async def`` with ``await`` instead.
     """
     def decorator(func):
         @wraps(func)
@@ -55,22 +73,26 @@ def rag_trace(stage: RAGStage):
             except Exception as e:
                 event["duration_ms"] = (time.time() - ts_start) * 1000
                 event["error"] = str(e)
+                _query_stages.pop(query_id, None)  # BUG 1: clean up on error
                 await emit(event)
                 raise
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            # For sync functions, create a new event loop or use existing one
+            # BUG 2 fix: simple, honest sync support
             try:
                 loop = asyncio.get_running_loop()
-                # If there's already a running loop, we can't use run_until_complete
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    return pool.submit(
-                        asyncio.run, async_wrapper(*args, **kwargs)
-                    ).result()
-            except RuntimeError:
-                return asyncio.run(async_wrapper(*args, **kwargs))
+                if loop.is_running():
+                    raise RuntimeError(
+                        "rag_trace: cannot use a sync function inside a running "
+                        "async event loop. Use 'async def' with 'await' instead."
+                    )
+            except RuntimeError as e:
+                if "cannot use a sync function" in str(e):
+                    raise
+                # No running loop — safe to use asyncio.run()
+                pass
+            return asyncio.run(async_wrapper(*args, **kwargs))
 
         return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
     return decorator
@@ -79,7 +101,8 @@ def rag_trace(stage: RAGStage):
 def _enrich_event(event: dict, result, stage: str) -> None:
     """Add stage-specific output fields."""
     if stage == "embed" and isinstance(result, list):
-        event["query_vector"] = result[:1536]  # cap at ada-002 dims
+        event["query_vector"] = result[:MAX_VECTOR_DIMS]
+        event.setdefault("metadata", {})["vector_dims"] = len(result)
     elif stage in ("retrieve", "rerank") and isinstance(result, list):
         event["chunks"] = [_to_chunk_dict(c, i) for i, c in enumerate(result)]
     elif stage == "generate" and isinstance(result, str):
@@ -87,6 +110,17 @@ def _enrich_event(event: dict, result, stage: str) -> None:
 
 
 def _to_chunk_dict(chunk, rank: int) -> dict:
+    # BUG 6: Check for LangChain Document (and similar objects with page_content)
+    if hasattr(chunk, "page_content"):
+        metadata = dict(chunk.metadata) if hasattr(chunk, "metadata") and chunk.metadata else {}
+        return {
+            "chunk_id": getattr(chunk, "id", None) or str(rank),
+            "text": str(chunk.page_content)[:1000],
+            "cosine_score": float(metadata.get("score", metadata.get("relevance_score", 0.0))),
+            "rerank_score": metadata.get("rerank_score"),
+            "final_rank": rank,
+            "metadata": metadata,
+        }
     if isinstance(chunk, dict):
         return {
             "chunk_id": chunk.get("id", str(rank)),
@@ -122,6 +156,7 @@ def _track_stage(query_id: str, stage: str, event: dict) -> None:
         "stage": stage,
         "duration_ms": event.get("duration_ms", 0),
     })
+    _enforce_stages_cap()
 
 
 async def _emit_session_complete(

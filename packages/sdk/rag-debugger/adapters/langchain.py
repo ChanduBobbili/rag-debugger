@@ -4,7 +4,7 @@ try:
 except ImportError:
     raise ImportError(
         "LangChain adapter requires langchain-core. "
-        "Install with: pip install rag-debugger-sdk[langchain]"
+        "Install with: pip install rag-debugger[langchain]"
     )
 
 import asyncio

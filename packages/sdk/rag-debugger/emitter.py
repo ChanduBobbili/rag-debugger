@@ -1,10 +1,15 @@
 import asyncio
+import sys
 import httpx
 from .scrubber import scrub_event
 
 _queue: asyncio.Queue | None = None
 _dashboard_url: str = "http://localhost:7777"
 _worker_task: asyncio.Task | None = None
+_init_lock: asyncio.Lock | None = None
+
+# BUG 3: Track dropped events and warn periodically
+_drop_count: int = 0
 
 
 def configure(dashboard_url: str) -> None:
@@ -31,10 +36,17 @@ async def _emit_worker() -> None:
                 break
 
 
-async def start_worker() -> None:
-    global _queue, _worker_task
-    _queue = asyncio.Queue(maxsize=1000)
-    _worker_task = asyncio.create_task(_emit_worker())
+async def _ensure_worker_started() -> None:
+    """Lazily initialize queue and worker on first emit (BUG 4 fix)."""
+    global _queue, _worker_task, _init_lock
+    if _queue is not None:
+        return  # already started
+    if _init_lock is None:
+        _init_lock = asyncio.Lock()
+    async with _init_lock:
+        if _queue is None:  # double-check after acquiring lock
+            _queue = asyncio.Queue(maxsize=1000)
+            _worker_task = asyncio.create_task(_emit_worker())
 
 
 async def stop_worker() -> None:
@@ -44,12 +56,17 @@ async def stop_worker() -> None:
 
 
 async def emit(event: dict) -> None:
-    """Non-blocking enqueue. Drops silently if queue is full (never blocks caller)."""
-    if _queue is None:
-        # Auto-start worker if not started yet
-        await start_worker()
+    """Non-blocking enqueue. Warns on drops instead of silently losing events."""
+    global _drop_count
+    await _ensure_worker_started()
     scrubbed = scrub_event(event)
     try:
         _queue.put_nowait(scrubbed)
     except asyncio.QueueFull:
-        pass  # Drop — never block the caller's pipeline
+        _drop_count += 1
+        if _drop_count == 1 or _drop_count % 50 == 0:
+            print(
+                f"[rag-debugger] WARNING: event dropped (total dropped: {_drop_count})"
+                f" — is the server running at {_dashboard_url}?",
+                file=sys.stderr,
+            )

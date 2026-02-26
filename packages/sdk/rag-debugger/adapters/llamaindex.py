@@ -6,7 +6,7 @@ try:
 except ImportError:
     raise ImportError(
         "LlamaIndex adapter requires llama-index-core. "
-        "Install with: pip install rag-debugger-sdk[llamaindex]"
+        "Install with: pip install rag-debugger[llamaindex]"
     )
 
 import asyncio

@@ -5,7 +5,7 @@ try:
 except ImportError:
     raise ImportError(
         "OpenAI adapter requires openai. "
-        "Install with: pip install rag-debugger-sdk[openai]"
+        "Install with: pip install rag-debugger[openai]"
     )
 
 import asyncio
