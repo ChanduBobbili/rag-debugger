@@ -1,15 +1,5 @@
 "use client"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts"
 import type { DailyMetric } from "@/lib/types"
 
 interface LineProps {
@@ -19,22 +9,17 @@ interface LineProps {
   label?: string
 }
 
-export function MetricsLineChart({
-  data,
-  dataKey,
-  color = "#ff6b35",
-  label = "",
-}: LineProps) {
+export function MetricsLineChart({ data, dataKey, color = "#ff6b35", label = "" }: LineProps) {
   if (!data.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-muted border border-border rounded-md">
+      <div className="text-muted border-border flex h-48 items-center justify-center rounded-md border text-sm">
         No data available
       </div>
     )
   }
 
   return (
-    <div className="w-full h-64">
+    <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
@@ -47,10 +32,7 @@ export function MetricsLineChart({
               return `${d.getMonth() + 1}/${d.getDate()}`
             }}
           />
-          <YAxis
-            stroke="#7a788a"
-            tick={{ fontSize: 11, fontFamily: "DM Mono" }}
-          />
+          <YAxis stroke="#7a788a" tick={{ fontSize: 11, fontFamily: "DM Mono" }} />
           <Tooltip
             contentStyle={{
               background: "#1a1a24",
@@ -83,34 +65,22 @@ interface BarProps {
   color?: string
 }
 
-export function MetricsBarChart({
-  data,
-  xKey,
-  yKey,
-  color = "#a78bfa",
-}: BarProps) {
+export function MetricsBarChart({ data, xKey, yKey, color = "#a78bfa" }: BarProps) {
   if (!data.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-muted border border-border rounded-md">
+      <div className="text-muted border-border flex h-48 items-center justify-center rounded-md border text-sm">
         No data available
       </div>
     )
   }
 
   return (
-    <div className="w-full h-64">
+    <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-          <XAxis
-            dataKey={xKey}
-            stroke="#7a788a"
-            tick={{ fontSize: 11, fontFamily: "DM Mono" }}
-          />
-          <YAxis
-            stroke="#7a788a"
-            tick={{ fontSize: 11, fontFamily: "DM Mono" }}
-          />
+          <XAxis dataKey={xKey} stroke="#7a788a" tick={{ fontSize: 11, fontFamily: "DM Mono" }} />
+          <YAxis stroke="#7a788a" tick={{ fontSize: 11, fontFamily: "DM Mono" }} />
           <Tooltip
             contentStyle={{
               background: "#1a1a24",

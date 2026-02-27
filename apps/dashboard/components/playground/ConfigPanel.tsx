@@ -41,42 +41,58 @@ interface ConfigPanelProps {
 const MODELS = ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"]
 const CHUNK_SIZES = ["256 tokens", "512 tokens", "1024 tokens"]
 
-function ConfigFields({ config, onChange, label }: { config: PlaygroundConfig; onChange: (c: PlaygroundConfig) => void; label?: string }) {
+function ConfigFields({
+  config,
+  onChange,
+  label,
+}: {
+  config: PlaygroundConfig
+  onChange: (c: PlaygroundConfig) => void
+  label?: string
+}) {
   return (
     <div className="space-y-3">
-      {label && <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{label}</p>}
+      {label && <p className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase">{label}</p>}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Top-K</span>
-          <span className="text-xs font-mono text-orange-400">{config.k}</span>
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[10px] tracking-wider text-zinc-500 uppercase">Top-K</span>
+          <span className="font-mono text-xs text-orange-400">{config.k}</span>
         </div>
         <input
           type="range"
           min="1"
           max="50"
           value={config.k}
-          onChange={e => onChange({ ...config, k: Number(e.target.value) })}
-          className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
+          onChange={(e) => onChange({ ...config, k: Number(e.target.value) })}
+          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-orange-500"
         />
       </div>
       <div>
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1.5">Embedding Model</span>
+        <span className="mb-1.5 block text-[10px] tracking-wider text-zinc-500 uppercase">Embedding Model</span>
         <select
           value={config.model}
-          onChange={e => onChange({ ...config, model: e.target.value })}
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-zinc-600"
+          onChange={(e) => onChange({ ...config, model: e.target.value })}
+          className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-zinc-600"
         >
-          {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+          {MODELS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1.5">Chunk Size</span>
+        <span className="mb-1.5 block text-[10px] tracking-wider text-zinc-500 uppercase">Chunk Size</span>
         <select
           value={config.chunkSize}
-          onChange={e => onChange({ ...config, chunkSize: e.target.value })}
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-zinc-600"
+          onChange={(e) => onChange({ ...config, chunkSize: e.target.value })}
+          className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-zinc-600"
         >
-          {CHUNK_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+          {CHUNK_SIZES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
         </select>
       </div>
     </div>
@@ -84,8 +100,19 @@ function ConfigFields({ config, onChange, label }: { config: PlaygroundConfig; o
 }
 
 export default function ConfigPanel({
-  mode, onModeChange, query, onQueryChange, config, onConfigChange,
-  configB, onConfigBChange, isRunning, onRun, history, onHistorySelect, onHistoryDelete,
+  mode,
+  onModeChange,
+  query,
+  onQueryChange,
+  config,
+  onConfigChange,
+  configB,
+  onConfigBChange,
+  isRunning,
+  onRun,
+  history,
+  onHistorySelect,
+  onHistoryDelete,
 }: ConfigPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -105,17 +132,17 @@ export default function ConfigPanel({
   }
 
   return (
-    <Card className="p-0 overflow-hidden flex flex-col">
-      <div className="p-4 space-y-4 flex-1">
+    <Card className="flex flex-col overflow-hidden p-0">
+      <div className="flex-1 space-y-4 p-4">
         {/* Mode toggle */}
-        <div className="flex rounded-md border border-zinc-800 p-0.5 w-fit">
-          {(["single", "compare"] as const).map(m => (
+        <div className="flex w-fit rounded-md border border-zinc-800 p-0.5">
+          {(["single", "compare"] as const).map((m) => (
             <button
               key={m}
               onClick={() => onModeChange(m)}
               className={cn(
-                "px-3 py-1 text-xs rounded-sm transition-colors capitalize",
-                mode === m ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300"
+                "rounded-sm px-3 py-1 text-xs capitalize transition-colors",
+                mode === m ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300",
               )}
             >
               {m === "compare" ? "Compare A/B" : m}
@@ -125,18 +152,18 @@ export default function ConfigPanel({
 
         {/* Query */}
         <div>
-          <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1.5">Query</span>
+          <span className="mb-1.5 block text-[10px] tracking-wider text-zinc-500 uppercase">Query</span>
           <textarea
             ref={textareaRef}
             value={query}
-            onChange={e => onQueryChange(e.target.value)}
+            onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="What is retrieval augmented generation?"
             maxLength={500}
             rows={3}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 placeholder:text-zinc-600 outline-none resize-none focus-visible:ring-1 focus-visible:ring-zinc-600 transition-colors"
+            className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-200 transition-colors outline-none placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-zinc-600"
           />
-          <p className="text-[10px] text-zinc-600 mt-1">{query.length}/500</p>
+          <p className="mt-1 text-[10px] text-zinc-600">{query.length}/500</p>
         </div>
 
         <Separator />
@@ -160,15 +187,17 @@ export default function ConfigPanel({
           disabled={isRunning || !query.trim()}
           className={cn(
             "w-full",
-            isRunning
-              ? "bg-zinc-800 text-zinc-400"
-              : "bg-orange-500 hover:bg-orange-600 text-white"
+            isRunning ? "bg-zinc-800 text-zinc-400" : "bg-orange-500 text-white hover:bg-orange-600",
           )}
         >
           {isRunning ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Running…</>
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Running…
+            </>
           ) : (
-            <><Play className="h-4 w-4" /> {mode === "compare" ? "Run Both" : "Run Query"}</>
+            <>
+              <Play className="h-4 w-4" /> {mode === "compare" ? "Run Both" : "Run Query"}
+            </>
           )}
         </Button>
       </div>
@@ -178,22 +207,25 @@ export default function ConfigPanel({
         <>
           <Separator />
           <div className="p-4 pt-3">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Recent Runs</p>
-            <div className="space-y-1 max-h-40 overflow-y-auto">
-              {history.slice(0, 10).map(run => (
+            <p className="mb-2 text-[10px] tracking-wider text-zinc-500 uppercase">Recent Runs</p>
+            <div className="max-h-40 space-y-1 overflow-y-auto">
+              {history.slice(0, 10).map((run) => (
                 <div
                   key={run.id}
-                  className="group flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors"
+                  className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-zinc-800/50"
                   onClick={() => onHistorySelect(run)}
                 >
-                  <span className="flex-1 text-xs text-zinc-400 truncate">{run.query.slice(0, 40)}</span>
-                  <Badge variant="secondary" className="text-[9px] font-mono">
+                  <span className="flex-1 truncate text-xs text-zinc-400">{run.query.slice(0, 40)}</span>
+                  <Badge variant="secondary" className="font-mono text-[9px]">
                     {run.result.grounding.toFixed(2)}
                   </Badge>
-                  <span className="text-[10px] text-zinc-600 font-mono">{run.result.latencyMs.toFixed(0)}ms</span>
+                  <span className="font-mono text-[10px] text-zinc-600">{run.result.latencyMs.toFixed(0)}ms</span>
                   <button
-                    onClick={e => { e.stopPropagation(); onHistoryDelete(run.id) }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-red-400"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onHistoryDelete(run.id)
+                    }}
+                    className="text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
                     aria-label="Delete run"
                   >
                     <Trash2 className="h-3 w-3" />

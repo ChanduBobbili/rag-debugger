@@ -24,22 +24,18 @@ export default function NavItem({ href, icon: Icon, label, badge, collapsed }: N
       href={href}
       className={cn(
         "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors duration-150",
-        active
-          ? "bg-zinc-800/60 text-white"
-          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40",
-        collapsed && "justify-center px-0"
+        active ? "bg-zinc-800/60 text-white" : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200",
+        collapsed && "justify-center px-0",
       )}
       aria-label={label}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-orange-500 rounded-r" />
-      )}
+      {active && <span className="absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-r bg-orange-500" />}
       <Icon className={cn("h-4 w-4 shrink-0", collapsed ? "ml-0" : "ml-0")} />
       {!collapsed && (
         <>
           <span className="truncate">{label}</span>
           {badge !== undefined && (
-            <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 h-5">
+            <Badge variant="secondary" className="ml-auto h-5 px-1.5 py-0 text-[10px]">
               {badge}
             </Badge>
           )}
@@ -55,7 +51,7 @@ export default function NavItem({ href, icon: Icon, label, badge, collapsed }: N
         <TooltipContent side="right" className="flex items-center gap-2">
           {label}
           {badge !== undefined && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+            <Badge variant="secondary" className="h-5 px-1.5 py-0 text-[10px]">
               {badge}
             </Badge>
           )}

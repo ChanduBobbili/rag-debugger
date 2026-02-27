@@ -16,17 +16,17 @@ interface ResultsPanelProps {
 export default function ResultsPanel({ traceId, events, connected }: ResultsPanelProps) {
   if (!traceId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-zinc-600 gap-3">
-        <div className="w-16 h-16 rounded-2xl border border-zinc-800 flex items-center justify-center">
+      <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 text-zinc-600">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800">
           <Play className="h-6 w-6 opacity-40" />
         </div>
         <p className="text-sm font-medium text-zinc-500">Ready to run</p>
-        <p className="text-xs text-center text-zinc-600 max-w-xs">
-          Click <span className="text-zinc-400 font-medium">Run Query</span> to get a{" "}
-          <span className="font-mono text-orange-400">trace_id</span>. Then run your
-          SDK-instrumented pipeline with that ID to see live results here.
+        <p className="max-w-xs text-center text-xs text-zinc-600">
+          Click <span className="font-medium text-zinc-400">Run Query</span> to get a{" "}
+          <span className="font-mono text-orange-400">trace_id</span>. Then run your SDK-instrumented pipeline with that
+          ID to see live results here.
         </p>
-        <div className="mt-3 space-y-1 text-xs font-mono bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-md text-zinc-500 text-left max-w-xs">
+        <div className="mt-3 max-w-xs space-y-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-left font-mono text-xs text-zinc-500">
           <p className="text-zinc-400">Example:</p>
           <p>init(dashboard_url=</p>
           <p className="pl-2">&quot;http://localhost:7777&quot;)</p>
@@ -35,27 +35,25 @@ export default function ResultsPanel({ traceId, events, connected }: ResultsPane
     )
   }
 
-  const sessionComplete = events.some(e => e.stage === "session_complete")
-  const genEvent = events.find(e => e.stage === "generate")
+  const sessionComplete = events.some((e) => e.stage === "session_complete")
+  const genEvent = events.find((e) => e.stage === "generate")
   const totalMs = events
-    .filter(e => e.stage !== "session_complete" && e.duration_ms)
+    .filter((e) => e.stage !== "session_complete" && e.duration_ms)
     .reduce((sum, e) => sum + (e.duration_ms ?? 0), 0)
-  const chunkCount = events
-    .filter(e => e.chunks)
-    .reduce((sum, e) => sum + (e.chunks?.length ?? 0), 0)
+  const chunkCount = events.filter((e) => e.chunks).reduce((sum, e) => sum + (e.chunks?.length ?? 0), 0)
   const grounding = genEvent?.grounding_scores
-    ? genEvent.grounding_scores.filter(g => g.grounded).length / genEvent.grounding_scores.length
+    ? genEvent.grounding_scores.filter((g) => g.grounded).length / genEvent.grounding_scores.length
     : null
 
   return (
     <div className="space-y-4">
       {traceId && events.length === 0 && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs font-mono">
-          <p className="text-zinc-500 mb-1">Waiting for pipeline events…</p>
-          <p className="text-zinc-600">trace_id: <span className="text-orange-400">{traceId}</span></p>
-          <p className="text-zinc-700 mt-1">
-            In your pipeline, call: new_trace(trace_id=&quot;{traceId}&quot;)
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 font-mono text-xs">
+          <p className="mb-1 text-zinc-500">Waiting for pipeline events…</p>
+          <p className="text-zinc-600">
+            trace_id: <span className="text-orange-400">{traceId}</span>
           </p>
+          <p className="mt-1 text-zinc-700">In your pipeline, call: new_trace(trace_id=&quot;{traceId}&quot;)</p>
         </div>
       )}
 
@@ -74,11 +72,7 @@ export default function ResultsPanel({ traceId, events, connected }: ResultsPane
         show={sessionComplete}
       />
 
-      {traceId && (
-        <p className="text-[10px] text-zinc-600 font-mono">
-          trace: {traceId}
-        </p>
-      )}
+      {traceId && <p className="font-mono text-[10px] text-zinc-600">trace: {traceId}</p>}
     </div>
   )
 }

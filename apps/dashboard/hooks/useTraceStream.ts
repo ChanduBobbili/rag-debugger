@@ -2,9 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import type { RAGEvent } from "@/lib/types"
 
-const BASE_WS =
-  process.env.NEXT_PUBLIC_API_URL?.replace("http", "ws") ??
-  "ws://localhost:7777"
+const BASE_WS = process.env.NEXT_PUBLIC_API_URL?.replace("http", "ws") ?? "ws://localhost:7777"
 
 export function useTraceStream(traceId: string | null) {
   const [events, setEvents] = useState<RAGEvent[]>([])
@@ -31,10 +29,7 @@ export function useTraceStream(traceId: string | null) {
     ws.onclose = () => {
       setConnected(false)
       // Exponential backoff reconnect (max 30s)
-      const delay = Math.min(
-        1000 * Math.pow(2, retryCount.current),
-        30_000,
-      )
+      const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30_000)
       retryCount.current += 1
       retryRef.current = setTimeout(connect, delay)
     }

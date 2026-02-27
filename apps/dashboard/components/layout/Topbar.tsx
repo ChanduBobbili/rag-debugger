@@ -38,13 +38,13 @@ export default function Topbar({ connected, onMenuClick, onSearchClick }: Topbar
   const crumbs = getBreadcrumb(path)
 
   return (
-    <header className="flex items-center justify-between h-[52px] px-4 lg:px-6 bg-zinc-950 border-b border-zinc-800 shrink-0">
+    <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-4 lg:px-6">
       {/* Left: hamburger (mobile) + breadcrumb */}
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden h-8 w-8 text-zinc-400"
+          className="h-8 w-8 text-zinc-400 lg:hidden"
           onClick={onMenuClick}
           aria-label="Open navigation"
         >
@@ -54,9 +54,7 @@ export default function Topbar({ connected, onMenuClick, onSearchClick }: Topbar
           {crumbs.map((c, i) => (
             <span key={i} className="flex items-center">
               {i > 0 && <span className="mx-2 text-zinc-600">/</span>}
-              <span className={cn(i === crumbs.length - 1 ? "text-zinc-100 font-medium" : "text-zinc-500")}>
-                {c}
-              </span>
+              <span className={cn(i === crumbs.length - 1 ? "font-medium text-zinc-100" : "text-zinc-500")}>{c}</span>
             </span>
           ))}
         </nav>
@@ -68,11 +66,11 @@ export default function Topbar({ connected, onMenuClick, onSearchClick }: Topbar
           variant="outline"
           size="sm"
           onClick={onSearchClick}
-          className="hidden sm:flex items-center gap-2 text-zinc-500 border-zinc-800 hover:text-zinc-300 h-8 px-3"
+          className="hidden h-8 items-center gap-2 border-zinc-800 px-3 text-zinc-500 hover:text-zinc-300 sm:flex"
         >
           <Search className="h-3.5 w-3.5" />
           <span className="text-xs">Search traces...</span>
-          <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-zinc-700 bg-zinc-800 px-1.5 font-mono text-[10px] font-medium text-zinc-400">
+          <kbd className="pointer-events-none ml-2 inline-flex h-5 items-center gap-1 rounded border border-zinc-700 bg-zinc-800 px-1.5 font-mono text-[10px] font-medium text-zinc-400 select-none">
             <span className="text-xs">⌘</span>K
           </kbd>
         </Button>
@@ -82,18 +80,11 @@ export default function Topbar({ connected, onMenuClick, onSearchClick }: Topbar
             <Badge
               variant="outline"
               className={cn(
-                "gap-1.5 cursor-default font-normal",
-                connected
-                  ? "border-emerald-500/20 text-emerald-400"
-                  : "border-red-500/20 text-red-400"
+                "cursor-default gap-1.5 font-normal",
+                connected ? "border-emerald-500/20 text-emerald-400" : "border-red-500/20 text-red-400",
               )}
             >
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  connected ? "bg-emerald-500 live-dot" : "bg-red-500"
-                )}
-              />
+              <span className={cn("h-1.5 w-1.5 rounded-full", connected ? "live-dot bg-emerald-500" : "bg-red-500")} />
               {connected ? "Live" : "Offline"}
             </Badge>
           </TooltipTrigger>

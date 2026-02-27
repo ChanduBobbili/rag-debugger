@@ -55,8 +55,12 @@ export default function TraceDetailPage() {
         setLoading(false)
       })
 
-    api.traces.grounding(traceId)
-      .then((g) => { setGrounding(g); setGroundingLoading(false) })
+    api.traces
+      .grounding(traceId)
+      .then((g) => {
+        setGrounding(g)
+        setGroundingLoading(false)
+      })
       .catch(() => setGroundingLoading(false))
   }, [traceId])
 
@@ -70,11 +74,17 @@ export default function TraceDetailPage() {
       const target = e.target as HTMLElement
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
 
-      if (e.key === "Escape") { router.push("/traces"); return }
-      if (e.key === "c" && !e.metaKey) { navigator.clipboard.writeText(traceId); return }
+      if (e.key === "Escape") {
+        router.push("/traces")
+        return
+      }
+      if (e.key === "c" && !e.metaKey) {
+        navigator.clipboard.writeText(traceId)
+        return
+      }
 
       const stages: RAGStage[] = ["embed", "retrieve", "rerank", "generate"]
-      const enabledStages = stages.filter(s => events.some(e => e.stage === s))
+      const enabledStages = stages.filter((s) => events.some((e) => e.stage === s))
       const currentIdx = enabledStages.indexOf(activeTab as RAGStage)
 
       if (e.key === "ArrowRight" && currentIdx < enabledStages.length - 1) {
@@ -101,55 +111,53 @@ export default function TraceDetailPage() {
   if (error || !events.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <AlertCircle className="h-8 w-8 text-zinc-600 mb-3" />
+        <AlertCircle className="mb-3 h-8 w-8 text-zinc-600" />
         <p className="text-sm text-zinc-400">{error || "Trace not found"}</p>
-        <p className="text-xs text-zinc-600 mt-1 font-mono">ID: {traceId}</p>
+        <p className="mt-1 font-mono text-xs text-zinc-600">ID: {traceId}</p>
         <Button variant="ghost" size="sm" onClick={() => router.push("/traces")} className="mt-4">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to traces
+          <ArrowLeft className="mr-1 h-4 w-4" /> Back to traces
         </Button>
       </div>
     )
   }
 
-  const queryText = events.find(e => e.query_text)?.query_text ?? "Unknown query"
-  const generatedAnswer = events.find(e => e.stage === "generate")?.generated_answer
+  const queryText = events.find((e) => e.query_text)?.query_text ?? "Unknown query"
+  const generatedAnswer = events.find((e) => e.stage === "generate")?.generated_answer
   const allChunks: ChunkScore[] = []
-  events.forEach(e => {
+  events.forEach((e) => {
     if (e.chunks) {
       try {
         const parsed = typeof e.chunks === "string" ? JSON.parse(e.chunks as unknown as string) : e.chunks
         if (Array.isArray(parsed)) allChunks.push(...parsed)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   })
-  const uniqueChunks = allChunks.filter((c, i, arr) => arr.findIndex(a => a.chunk_id === c.chunk_id) === i)
+  const uniqueChunks = allChunks.filter((c, i, arr) => arr.findIndex((a) => a.chunk_id === c.chunk_id) === i)
 
   const stages: RAGStage[] = ["embed", "retrieve", "rerank", "generate"]
-  const activeEvent = events.find(e => e.stage === activeTab)
+  const activeEvent = events.find((e) => e.stage === activeTab)
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
-      className="space-y-5"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
-            <button onClick={() => router.push("/traces")} className="hover:text-zinc-300 transition-colors">
+          <div className="mb-1 flex items-center gap-2 text-xs text-zinc-500">
+            <button onClick={() => router.push("/traces")} className="transition-colors hover:text-zinc-300">
               Traces
             </button>
             <span>/</span>
             <span className="font-mono text-zinc-400">{traceId.slice(0, 8)}</span>
           </div>
-          <h1 className="text-xl font-semibold text-zinc-100 leading-tight">
-            {queryText.slice(0, 80)}{queryText.length > 80 ? "…" : ""}
+          <h1 className="text-xl leading-tight font-semibold text-zinc-100">
+            {queryText.slice(0, 80)}
+            {queryText.length > 80 ? "…" : ""}
           </h1>
         </div>
         <Button variant="outline" size="sm" onClick={handleShare} className="shrink-0">
-          <Share2 className="h-3.5 w-3.5 mr-1.5" />
+          <Share2 className="mr-1.5 h-3.5 w-3.5" />
           Share
         </Button>
       </div>
@@ -160,13 +168,13 @@ export default function TraceDetailPage() {
       </Card>
 
       {/* Query & Answer */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="p-4">
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Query</h3>
-          <p className="text-sm text-zinc-200 leading-relaxed">{queryText}</p>
+          <h3 className="mb-2 text-xs font-medium tracking-wider text-zinc-500 uppercase">Query</h3>
+          <p className="text-sm leading-relaxed text-zinc-200">{queryText}</p>
         </Card>
         <Card className="p-4">
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Generated Answer</h3>
+          <h3 className="mb-2 text-xs font-medium tracking-wider text-zinc-500 uppercase">Generated Answer</h3>
           {generatedAnswer && grounding?.available && grounding.grounding ? (
             <GroundingHighlighter
               answer={generatedAnswer}
@@ -180,31 +188,29 @@ export default function TraceDetailPage() {
               Computing grounding scores…
             </div>
           ) : (
-            <p className="text-sm text-zinc-400">
-              {generatedAnswer || "No answer generated"}
-            </p>
+            <p className="text-sm text-zinc-400">{generatedAnswer || "No answer generated"}</p>
           )}
         </Card>
       </div>
 
       {/* Stage Tabs */}
-      <Card className="p-0 overflow-hidden">
+      <Card className="overflow-hidden p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="border-b border-zinc-800 px-4">
-            <TabsList className="bg-transparent h-auto p-0 gap-0">
-              {stages.map(stage => {
-                const ev = events.find(e => e.stage === stage)
+            <TabsList className="h-auto gap-0 bg-transparent p-0">
+              {stages.map((stage) => {
+                const ev = events.find((e) => e.stage === stage)
                 return (
                   <TabsTrigger
                     key={stage}
                     value={stage}
                     disabled={!ev}
-                    className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-transparent px-4 py-3 text-sm gap-2"
+                    className="relative gap-2 rounded-none border-b-2 border-transparent px-4 py-3 text-sm data-[state=active]:border-orange-500 data-[state=active]:bg-transparent"
                   >
-                    <span className={cn("w-2 h-2 rounded-full", STAGE_COLORS[stage])} />
+                    <span className={cn("h-2 w-2 rounded-full", STAGE_COLORS[stage])} />
                     <span className="capitalize">{stage}</span>
                     {ev?.duration_ms != null && (
-                      <span className="text-[10px] text-zinc-600 font-mono">{ev.duration_ms.toFixed(0)}ms</span>
+                      <span className="font-mono text-[10px] text-zinc-600">{ev.duration_ms.toFixed(0)}ms</span>
                     )}
                   </TabsTrigger>
                 )
@@ -212,15 +218,15 @@ export default function TraceDetailPage() {
             </TabsList>
           </div>
 
-          {stages.map(stage => {
-            const ev = events.find(e => e.stage === stage)
+          {stages.map((stage) => {
+            const ev = events.find((e) => e.stage === stage)
             return (
-              <TabsContent key={stage} value={stage} className="p-4 mt-0 space-y-4">
+              <TabsContent key={stage} value={stage} className="mt-0 space-y-4 p-4">
                 {ev ? (
                   <>
                     {ev.error && (
                       <div className="rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-400">
-                        <AlertCircle className="h-4 w-4 inline mr-2" />
+                        <AlertCircle className="mr-2 inline h-4 w-4" />
                         {ev.error}
                       </div>
                     )}
@@ -231,7 +237,10 @@ export default function TraceDetailPage() {
                       <div className="space-y-4">
                         <ChunkWaterfall chunks={uniqueChunks} onChunkClick={setSelectedChunk} />
                         {selectedChunk && (
-                          <ChunkCard chunk={selectedChunk} highlighted={highlightedChunkId === selectedChunk.chunk_id} />
+                          <ChunkCard
+                            chunk={selectedChunk}
+                            highlighted={highlightedChunkId === selectedChunk.chunk_id}
+                          />
                         )}
                       </div>
                     )}
@@ -250,35 +259,56 @@ export default function TraceDetailPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-zinc-800">
-                                <th className="text-left py-2 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-medium">#</th>
-                                <th className="text-left py-2 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Sentence</th>
-                                <th className="text-left py-2 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-medium w-20">Score</th>
-                                <th className="text-left py-2 px-3 text-[10px] uppercase tracking-wider text-zinc-500 font-medium w-24">Source</th>
+                                <th className="px-3 py-2 text-left text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
+                                  #
+                                </th>
+                                <th className="px-3 py-2 text-left text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
+                                  Sentence
+                                </th>
+                                <th className="w-20 px-3 py-2 text-left text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
+                                  Score
+                                </th>
+                                <th className="w-24 px-3 py-2 text-left text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
+                                  Source
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {grounding.grounding.map((g, i) => (
-                                <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                                  <td className="py-2 px-3 text-xs text-zinc-600">{i + 1}</td>
-                                  <td className="py-2 px-3 text-xs text-zinc-400 max-w-md truncate">{g.sentence}</td>
-                                  <td className="py-2 px-3">
-                                    <Badge variant="outline" className={cn("font-mono text-[10px]", g.grounded ? "text-emerald-400 border-emerald-500/20" : "text-red-400 border-red-500/20")}>
+                                <tr
+                                  key={i}
+                                  className="border-b border-zinc-800/50 transition-colors hover:bg-zinc-800/30"
+                                >
+                                  <td className="px-3 py-2 text-xs text-zinc-600">{i + 1}</td>
+                                  <td className="max-w-md truncate px-3 py-2 text-xs text-zinc-400">{g.sentence}</td>
+                                  <td className="px-3 py-2">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "font-mono text-[10px]",
+                                        g.grounded
+                                          ? "border-emerald-500/20 text-emerald-400"
+                                          : "border-red-500/20 text-red-400",
+                                      )}
+                                    >
                                       {(g.score * 100).toFixed(0)}%
                                     </Badge>
                                   </td>
-                                  <td className="py-2 px-3 text-[10px] font-mono text-zinc-600">
+                                  <td className="px-3 py-2 font-mono text-[10px] text-zinc-600">
                                     {g.source_chunk_id ? (
                                       <button
                                         onClick={() => {
                                           setActiveTab("retrieve")
-                                          const chunk = uniqueChunks.find(c => c.chunk_id === g.source_chunk_id)
+                                          const chunk = uniqueChunks.find((c) => c.chunk_id === g.source_chunk_id)
                                           if (chunk) setSelectedChunk(chunk)
                                         }}
-                                        className="text-orange-400 hover:text-orange-300 transition-colors"
+                                        className="text-orange-400 transition-colors hover:text-orange-300"
                                       >
                                         {g.source_chunk_id.slice(0, 10)}
                                       </button>
-                                    ) : "—"}
+                                    ) : (
+                                      "—"
+                                    )}
                                   </td>
                                 </tr>
                               ))}
@@ -289,18 +319,16 @@ export default function TraceDetailPage() {
                     )}
 
                     <details className="text-xs">
-                      <summary className="cursor-pointer mb-2 text-zinc-600 hover:text-zinc-400 transition-colors">
+                      <summary className="mb-2 cursor-pointer text-zinc-600 transition-colors hover:text-zinc-400">
                         Raw Event Data
                       </summary>
-                      <pre className="p-3 rounded-lg overflow-x-auto max-h-64 bg-zinc-950 border border-zinc-800 text-zinc-500 font-mono text-[11px]">
+                      <pre className="max-h-64 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-[11px] text-zinc-500">
                         {JSON.stringify(ev, null, 2)}
                       </pre>
                     </details>
                   </>
                 ) : (
-                  <div className="text-sm py-8 text-center text-zinc-600">
-                    No data for this stage
-                  </div>
+                  <div className="py-8 text-center text-sm text-zinc-600">No data for this stage</div>
                 )}
               </TabsContent>
             )
@@ -311,20 +339,18 @@ export default function TraceDetailPage() {
       {/* Embedding Scatter */}
       {embeddings?.available && (
         <Card className="p-4">
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">
-            Embedding Space (UMAP)
-          </h3>
+          <h3 className="mb-4 text-xs font-medium tracking-wider text-zinc-500 uppercase">Embedding Space (UMAP)</h3>
           <EmbeddingScatter
             queryVector={embeddings.query_vector ?? null}
-            chunkVectors={
-              uniqueChunks
-                .filter(() => embeddings.query_vector)
-                .map(c => ({
-                  vector: Array(embeddings.query_vector?.length ?? 0).fill(0).map(() => Math.random()),
-                  chunk_id: c.chunk_id,
-                  text: c.text,
-                }))
-            }
+            chunkVectors={uniqueChunks
+              .filter(() => embeddings.query_vector)
+              .map((c) => ({
+                vector: Array(embeddings.query_vector?.length ?? 0)
+                  .fill(0)
+                  .map(() => Math.random()),
+                chunk_id: c.chunk_id,
+                text: c.text,
+              }))}
           />
         </Card>
       )}

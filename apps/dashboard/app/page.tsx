@@ -13,7 +13,10 @@ import GettingStarted from "@/components/home/GettingStarted"
 import { Skeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
 
-function computeDelta(daily: DailyMetric[], key: keyof DailyMetric): { delta: string; deltaPositive: boolean } | undefined {
+function computeDelta(
+  daily: DailyMetric[],
+  key: keyof DailyMetric,
+): { delta: string; deltaPositive: boolean } | undefined {
   if (daily.length < 2) return undefined
   const prev = Number(daily[daily.length - 2][key] ?? 0)
   const curr = Number(daily[daily.length - 1][key] ?? 0)
@@ -34,12 +37,22 @@ export default function HomePage() {
   const { events, connected } = useTraceStream("__live__")
 
   useEffect(() => {
-    api.analytics.metrics(7)
-      .then((d) => { setMetrics(d); setMetricsLoading(false) })
-      .catch(() => { setMetricsLoading(false) })
+    api.analytics
+      .metrics(7)
+      .then((d) => {
+        setMetrics(d)
+        setMetricsLoading(false)
+      })
+      .catch(() => {
+        setMetricsLoading(false)
+      })
 
-    api.traces.list({ limit: 8 })
-      .then((d) => { setTraces(d); setTracesLoading(false) })
+    api.traces
+      .list({ limit: 8 })
+      .then((d) => {
+        setTraces(d)
+        setTracesLoading(false)
+      })
       .catch((e) => {
         setError("Failed to load traces. Is the server running at localhost:7777?")
         setTracesLoading(false)
@@ -50,7 +63,10 @@ export default function HomePage() {
   useEffect(() => {
     const latestEvent = events[events.length - 1]
     if (latestEvent?.stage === "session_complete") {
-      api.traces.list({ limit: 8 }).then(setTraces).catch(() => {})
+      api.traces
+        .list({ limit: 8 })
+        .then(setTraces)
+        .catch(() => {})
     }
   }, [events])
 
@@ -68,25 +84,29 @@ export default function HomePage() {
 
   const cards = [
     {
-      label: "Traces Today", color: "orange",
+      label: "Traces Today",
+      color: "orange",
       value: metricsLoading ? "—" : String(s?.total ?? 0),
       sparklineData: totalSpark,
       ...traceDelta,
     },
     {
-      label: "Avg Grounding", color: "emerald",
+      label: "Avg Grounding",
+      color: "emerald",
       value: metricsLoading ? "—" : s?.avg_grounding ? `${(s.avg_grounding * 100).toFixed(0)}%` : "—",
       sparklineData: groundingSpark,
       ...groundingDelta,
     },
     {
-      label: "Failure Rate", color: "red",
+      label: "Failure Rate",
+      color: "red",
       value: metricsLoading ? "—" : `${(s?.failure_rate ?? 0).toFixed(1)}%`,
       sparklineData: errorSpark,
       ...(failureDelta ? { delta: failureDelta.delta, deltaPositive: !failureDelta.deltaPositive } : {}),
     },
     {
-      label: "Avg Latency", color: "violet",
+      label: "Avg Latency",
+      color: "violet",
       value: metricsLoading ? "—" : s?.avg_latency ? `${s.avg_latency.toFixed(0)}ms` : "—",
       sparklineData: latencySpark,
       ...(latencyDelta ? { delta: latencyDelta.delta, deltaPositive: !latencyDelta.deltaPositive } : {}),
@@ -94,21 +114,16 @@ export default function HomePage() {
   ]
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="space-y-6">
       {error && (
         <div className="rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-400">
-          <AlertCircle className="h-4 w-4 inline mr-2" />
+          <AlertCircle className="mr-2 inline h-4 w-4" />
           {error}
         </div>
       )}
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((card, i) => (
           <motion.div
             key={card.label}
@@ -122,18 +137,18 @@ export default function HomePage() {
       </div>
 
       {/* Main content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Recent Traces */}
         <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium text-zinc-200">Recent Traces</h2>
-            <Link href="/traces" className="text-xs text-orange-400 hover:text-orange-300 transition-colors">
+            <Link href="/traces" className="text-xs text-orange-400 transition-colors hover:text-orange-300">
               View all →
             </Link>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 divide-y divide-zinc-800/50">
+          <div className="divide-y divide-zinc-800/50 rounded-xl border border-zinc-800 bg-zinc-900">
             {tracesLoading ? (
-              <div className="p-3 space-y-2">
+              <div className="space-y-2 p-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
@@ -155,7 +170,7 @@ export default function HomePage() {
 
         {/* Live Feed */}
         <div>
-          <h2 className="text-sm font-medium text-zinc-200 mb-3">Live Activity</h2>
+          <h2 className="mb-3 text-sm font-medium text-zinc-200">Live Activity</h2>
           <LiveFeed events={events} connected={connected} />
         </div>
       </div>

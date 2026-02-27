@@ -36,13 +36,13 @@ function formatDate(label: string | undefined): string {
 export default function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 shadow-xl text-xs font-mono">
-      <p className="text-zinc-400 mb-1">{formatDate(label)}</p>
+    <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs shadow-xl">
+      <p className="mb-1 text-zinc-400">{formatDate(label)}</p>
       {payload.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: item.color }} />
           <span className="text-zinc-300">{item.name}:</span>
-          <span className="text-white font-medium">{formatValue(item.value, item.name)}</span>
+          <span className="font-medium text-white">{formatValue(item.value, item.name)}</span>
         </div>
       ))}
     </div>

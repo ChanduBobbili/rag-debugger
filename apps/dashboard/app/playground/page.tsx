@@ -29,7 +29,9 @@ function loadHistory(): PlaygroundRun[] {
 function saveHistory(runs: PlaygroundRun[]) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(runs.slice(0, 10)))
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export default function PlaygroundPage() {
@@ -64,7 +66,7 @@ export default function PlaygroundPage() {
   }, [query, configA])
 
   const addToHistory = useCallback((run: PlaygroundRun) => {
-    setHistory(prev => {
+    setHistory((prev) => {
       const next = [run, ...prev].slice(0, 10)
       saveHistory(next)
       return next
@@ -112,14 +114,14 @@ export default function PlaygroundPage() {
   }, [query, configA, configB, mode, isRunning])
 
   useEffect(() => {
-    const sessionComplete = streamA.events.some(e => e.stage === "session_complete")
+    const sessionComplete = streamA.events.some((e) => e.stage === "session_complete")
     if (sessionComplete && traceIdA) {
-      const genEvent = streamA.events.find(e => e.stage === "generate")
+      const genEvent = streamA.events.find((e) => e.stage === "generate")
       const totalMs = streamA.events
-        .filter(e => e.stage !== "session_complete" && e.duration_ms)
+        .filter((e) => e.stage !== "session_complete" && e.duration_ms)
         .reduce((sum, e) => sum + (e.duration_ms ?? 0), 0)
       const grounding = genEvent?.grounding_scores
-        ? genEvent.grounding_scores.filter(g => g.grounded).length / genEvent.grounding_scores.length
+        ? genEvent.grounding_scores.filter((g) => g.grounded).length / genEvent.grounding_scores.length
         : 0
 
       addToHistory({
@@ -138,8 +140,8 @@ export default function PlaygroundPage() {
   }, [])
 
   const handleHistoryDelete = useCallback((id: string) => {
-    setHistory(prev => {
-      const next = prev.filter(r => r.id !== id)
+    setHistory((prev) => {
+      const next = prev.filter((r) => r.id !== id)
       saveHistory(next)
       return next
     })
@@ -150,7 +152,7 @@ export default function PlaygroundPage() {
       const target = e.target as HTMLElement
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return
       if (e.key === "a" && !e.metaKey) {
-        setMode(m => m === "single" ? "compare" : "single")
+        setMode((m) => (m === "single" ? "compare" : "single"))
       }
     }
     document.addEventListener("keydown", handleKeyDown)
@@ -158,17 +160,13 @@ export default function PlaygroundPage() {
   }, [])
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
       <div className="mb-4">
         <h1 className="text-lg font-semibold text-zinc-100">Playground</h1>
-        <p className="text-xs text-zinc-500 font-mono">Test queries against your live RAG pipeline</p>
+        <p className="font-mono text-xs text-zinc-500">Test queries against your live RAG pipeline</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
         <ConfigPanel
           mode={mode}
           onModeChange={setMode}
@@ -198,11 +196,7 @@ export default function PlaygroundPage() {
               configB={configB}
             />
           ) : (
-            <ResultsPanel
-              traceId={traceIdA}
-              events={streamA.events}
-              connected={streamA.connected}
-            />
+            <ResultsPanel traceId={traceIdA} events={streamA.events} connected={streamA.connected} />
           )}
         </div>
       </div>

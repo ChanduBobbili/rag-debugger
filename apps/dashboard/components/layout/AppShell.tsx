@@ -47,7 +47,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       // Vim-style g-then-letter navigation
       if (e.key === "g" && !e.metaKey && !e.ctrlKey && !gPressed) {
         gPressed = true
-        gTimeout = setTimeout(() => { gPressed = false }, 200)
+        gTimeout = setTimeout(() => {
+          gPressed = false
+        }, 200)
         return
       }
 
@@ -69,42 +71,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      <div
-        className="h-screen overflow-hidden bg-zinc-950"
-        data-collapsed={collapsed}
-      >
+      <div className="h-screen overflow-hidden bg-zinc-950" data-collapsed={collapsed}>
         <div className="flex h-full">
           {/* Desktop sidebar */}
           <div className="hidden lg:flex">
-            <Sidebar
-              collapsed={collapsed}
-              onToggle={toggleSidebar}
-              connected={connected}
-            />
+            <Sidebar collapsed={collapsed} onToggle={toggleSidebar} connected={connected} />
           </div>
 
           {/* Mobile sidebar sheet */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetContent side="left" className="w-60 p-0 bg-zinc-950 border-zinc-800">
+            <SheetContent side="left" className="w-60 border-zinc-800 bg-zinc-950 p-0">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <Sidebar
-                collapsed={false}
-                onToggle={() => setMobileOpen(false)}
-                connected={connected}
-              />
+              <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} connected={connected} />
             </SheetContent>
           </Sheet>
 
           {/* Main area */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <Topbar
               connected={connected}
               onMenuClick={() => setMobileOpen(true)}
               onSearchClick={() => setSearchOpen(true)}
             />
-            <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-              {children}
-            </main>
+            <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
           </div>
         </div>
 

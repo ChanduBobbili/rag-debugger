@@ -27,7 +27,7 @@ export default function StatCard({ label, value, delta, deltaPositive, color, sp
 
   if (loading) {
     return (
-      <Card className="p-4 space-y-3">
+      <Card className="space-y-3 p-4">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-9 w-16" />
         <Skeleton className="h-6 w-full" />
@@ -36,21 +36,21 @@ export default function StatCard({ label, value, delta, deltaPositive, color, sp
   }
 
   return (
-    <Card className="p-4 hover:shadow-lg hover:shadow-zinc-900/50 hover:border-zinc-700 transition-all duration-200 group">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-zinc-500 font-medium">{label}</span>
+    <Card className="group p-4 transition-all duration-200 hover:border-zinc-700 hover:shadow-lg hover:shadow-zinc-900/50">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-medium text-zinc-500">{label}</span>
         {delta && (
-          <span className={cn(
-            "text-[10px] font-medium px-1.5 py-0.5 rounded-md",
-            deltaPositive ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-          )}>
+          <span
+            className={cn(
+              "rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+              deltaPositive ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+            )}
+          >
             {deltaPositive ? "↑" : "↓"} {delta}
           </span>
         )}
       </div>
-      <div className={cn("text-3xl font-semibold font-mono tracking-tight mb-3", colors.text)}>
-        {value}
-      </div>
+      <div className={cn("mb-3 font-mono text-3xl font-semibold tracking-tight", colors.text)}>{value}</div>
       {sparklineData && sparklineData.length > 1 && (
         <TrendSparkline data={sparklineData} color={colors.spark} width={200} height={24} />
       )}

@@ -51,24 +51,24 @@ export default function SettingsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="space-y-6 max-w-xl"
+      className="max-w-xl space-y-6"
     >
       <div>
         <h1 className="text-lg font-semibold text-zinc-100">Settings</h1>
-        <p className="text-xs text-zinc-500 font-mono">Configure your RAG Debugger instance</p>
+        <p className="font-mono text-xs text-zinc-500">Configure your RAG Debugger instance</p>
       </div>
 
-      <Card className="p-5 space-y-4">
+      <Card className="space-y-4 p-5">
         <div>
-          <h3 className="text-sm font-medium text-zinc-200 mb-0.5">Server URL</h3>
-          <p className="text-xs text-zinc-500 mb-3">
+          <h3 className="mb-0.5 text-sm font-medium text-zinc-200">Server URL</h3>
+          <p className="mb-3 text-xs text-zinc-500">
             The FastAPI server that receives SDK events and serves trace data.
           </p>
           <div className="flex gap-2">
             <input
               value={serverUrl}
-              onChange={e => setServerUrl(e.target.value)}
-              className="flex-1 bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono outline-none focus-visible:ring-1 focus-visible:ring-zinc-600 transition-colors"
+              onChange={(e) => setServerUrl(e.target.value)}
+              className="flex-1 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-zinc-600"
               placeholder="http://localhost:7777"
             />
             <Button
@@ -77,23 +77,30 @@ export default function SettingsPage() {
               onClick={handleTest}
               disabled={testStatus === "testing"}
               className={
-                testStatus === "ok" ? "border-emerald-500/50 text-emerald-400" :
-                testStatus === "error" ? "border-red-500/50 text-red-400" : ""
+                testStatus === "ok"
+                  ? "border-emerald-500/50 text-emerald-400"
+                  : testStatus === "error"
+                    ? "border-red-500/50 text-red-400"
+                    : ""
               }
             >
-              {testStatus === "testing" ? "Testing…" :
-               testStatus === "ok" ? "✓ OK" :
-               testStatus === "error" ? "✗ Failed" : "Test"}
+              {testStatus === "testing"
+                ? "Testing…"
+                : testStatus === "ok"
+                  ? "✓ OK"
+                  : testStatus === "error"
+                    ? "✗ Failed"
+                    : "Test"}
             </Button>
           </div>
         </div>
 
         <div className="flex gap-2 pt-1">
-          <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-600 text-white gap-1.5">
+          <Button onClick={handleSave} className="gap-1.5 bg-orange-500 text-white hover:bg-orange-600">
             {saved ? <Check className="h-4 w-4" /> : null}
             {saved ? "Saved" : "Save"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleReset} className="text-zinc-500 gap-1.5">
+          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 text-zinc-500">
             <RotateCcw className="h-3.5 w-3.5" />
             Reset to default
           </Button>
@@ -101,11 +108,11 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="p-5">
-        <h3 className="text-sm font-medium text-zinc-200 mb-1">About</h3>
-        <p className="text-xs text-zinc-500 font-mono">RAG Debugger Dashboard v0.0.1</p>
-        <p className="text-xs text-zinc-600 mt-1">
-          Instrument your RAG pipeline with <span className="font-mono text-zinc-500">@rag_trace</span> and this dashboard
-          visualizes every stage in real time.
+        <h3 className="mb-1 text-sm font-medium text-zinc-200">About</h3>
+        <p className="font-mono text-xs text-zinc-500">RAG Debugger Dashboard v0.0.1</p>
+        <p className="mt-1 text-xs text-zinc-600">
+          Instrument your RAG pipeline with <span className="font-mono text-zinc-500">@rag_trace</span> and this
+          dashboard visualizes every stage in real time.
         </p>
       </Card>
     </motion.div>

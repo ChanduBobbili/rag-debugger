@@ -10,8 +10,8 @@ interface Props {
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <Card className="p-3">
-      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-lg font-semibold font-mono text-zinc-200">{value}</p>
+      <p className="mb-1 text-[10px] tracking-wider text-zinc-500 uppercase">{label}</p>
+      <p className="font-mono text-lg font-semibold text-zinc-200">{value}</p>
     </Card>
   )
 }
@@ -36,11 +36,14 @@ export default function StageMetaPanel({ event }: Props) {
         <MetaItem label="Chunks Retrieved" value={String(event.chunks?.length ?? meta.chunk_count ?? "—")} />
         <MetaItem label="Duration" value={`${event.duration_ms?.toFixed(0) ?? "—"}ms`} />
         <MetaItem label="Index Type" value={String(meta.index_type || "vector")} />
-        <MetaItem label="Top Score" value={
-          event.chunks?.length
-            ? Math.max(...event?.chunks?.map?.((c: ChunkScore) => c?.cosine_score ?? 0) ?? []).toFixed(3)
-            : "—"
-        } />
+        <MetaItem
+          label="Top Score"
+          value={
+            event.chunks?.length
+              ? Math.max(...(event?.chunks?.map?.((c: ChunkScore) => c?.cosine_score ?? 0) ?? [])).toFixed(3)
+              : "—"
+          }
+        />
       </div>
     )
   }

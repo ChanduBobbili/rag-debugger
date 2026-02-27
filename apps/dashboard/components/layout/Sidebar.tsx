@@ -1,6 +1,15 @@
 "use client"
 
-import { LayoutDashboard, Activity, BarChart3, Play, Settings, ChevronsLeft, ChevronsRight, Hexagon } from "lucide-react"
+import {
+  LayoutDashboard,
+  Activity,
+  BarChart3,
+  Play,
+  Settings,
+  ChevronsLeft,
+  ChevronsRight,
+  Hexagon,
+} from "lucide-react"
 import NavItem from "./NavItem"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
@@ -22,38 +31,36 @@ const WORKSPACE_NAV = [
   { href: "/playground", icon: Play, label: "Playground" },
 ]
 
-const SYSTEM_NAV = [
-  { href: "/settings", icon: Settings, label: "Settings" },
-]
+const SYSTEM_NAV = [{ href: "/settings", icon: Settings, label: "Settings" }]
 
 export default function Sidebar({ collapsed, onToggle, connected, traceCount }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-zinc-950 border-r border-zinc-800 transition-all duration-200 ease-in-out shrink-0 overflow-hidden",
-        collapsed ? "w-16" : "w-60"
+        "flex shrink-0 flex-col overflow-hidden border-r border-zinc-800 bg-zinc-950 transition-all duration-200 ease-in-out",
+        collapsed ? "w-16" : "w-60",
       )}
     >
       {/* Logo */}
-      <div className={cn(
-        "flex items-center h-14 border-b border-zinc-800 shrink-0",
-        collapsed ? "justify-center px-2" : "px-4 gap-3"
-      )}>
-        <Hexagon className="h-5 w-5 text-orange-500 shrink-0" />
+      <div
+        className={cn(
+          "flex h-14 shrink-0 items-center border-b border-zinc-800",
+          collapsed ? "justify-center px-2" : "gap-3 px-4",
+        )}
+      >
+        <Hexagon className="h-5 w-5 shrink-0 text-orange-500" />
         {!collapsed && (
-          <div className="flex items-baseline gap-2 min-w-0">
-            <span className="font-semibold text-sm text-zinc-100 truncate">RAG Debugger</span>
-            <span className="text-[10px] text-zinc-600 font-mono">v{packageJson.version}</span>
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-sm font-semibold text-zinc-100">RAG Debugger</span>
+            <span className="font-mono text-[10px] text-zinc-600">v{packageJson.version}</span>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-3">
         {!collapsed && (
-          <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
-            Workspace
-          </p>
+          <p className="px-3 pb-1 text-[10px] font-medium tracking-widest text-zinc-500 uppercase">Workspace</p>
         )}
         {WORKSPACE_NAV.map((item) => (
           <NavItem
@@ -69,18 +76,10 @@ export default function Sidebar({ collapsed, onToggle, connected, traceCount }: 
         <Separator className="my-3" />
 
         {!collapsed && (
-          <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
-            System
-          </p>
+          <p className="px-3 pb-1 text-[10px] font-medium tracking-widest text-zinc-500 uppercase">System</p>
         )}
         {SYSTEM_NAV.map((item) => (
-          <NavItem
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            label={item.label}
-            collapsed={collapsed}
-          />
+          <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} collapsed={collapsed} />
         ))}
       </nav>
 
@@ -99,31 +98,31 @@ export default function Sidebar({ collapsed, onToggle, connected, traceCount }: 
       </div>
 
       {/* Footer — connection status */}
-      <div className={cn(
-        "flex items-center h-12 border-t border-zinc-800 shrink-0",
-        collapsed ? "justify-center px-2" : "px-4 gap-2"
-      )}>
+      <div
+        className={cn(
+          "flex h-12 shrink-0 items-center border-t border-zinc-800",
+          collapsed ? "justify-center px-2" : "gap-2 px-4",
+        )}
+      >
         {collapsed ? (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <span
-                className={cn("h-2 w-2 rounded-full shrink-0", connected ? "bg-emerald-500 live-dot" : "bg-red-500")}
+                className={cn("h-2 w-2 shrink-0 rounded-full", connected ? "live-dot bg-emerald-500" : "bg-red-500")}
               />
             </TooltipTrigger>
-            <TooltipContent side="right">
-              {connected ? "Connected · localhost:7777" : "Offline"}
-            </TooltipContent>
+            <TooltipContent side="right">{connected ? "Connected · localhost:7777" : "Offline"}</TooltipContent>
           </Tooltip>
         ) : (
           <>
             <span
-              className={cn("h-2 w-2 rounded-full shrink-0", connected ? "bg-emerald-500 live-dot" : "bg-red-500")}
+              className={cn("h-2 w-2 shrink-0 rounded-full", connected ? "live-dot bg-emerald-500" : "bg-red-500")}
             />
             <div className="min-w-0">
               <p className={cn("text-[11px]", connected ? "text-zinc-400" : "text-red-400")}>
                 {connected ? "Connected" : "Offline"}
               </p>
-              <p className="text-[10px] text-zinc-600 font-mono truncate">localhost:7777</p>
+              <p className="truncate font-mono text-[10px] text-zinc-600">localhost:7777</p>
             </div>
           </>
         )}

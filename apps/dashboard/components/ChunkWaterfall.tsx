@@ -27,9 +27,7 @@ function ChunkWaterfallInner({ chunks, onChunkClick }: Props) {
     svg.selectAll("*").remove()
     svg.attr("width", W).attr("height", H)
 
-    const g = svg
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`)
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`)
 
     const stages = ["cosine_score", "rerank_score"] as const
     const stageLabels: Record<string, string> = {
@@ -151,9 +149,7 @@ function ChunkWaterfallInner({ chunks, onChunkClick }: Props) {
           }
         })
         .on("mousemove", (event: MouseEvent) => {
-          tooltip
-            .style("left", `${event.pageX + 12}px`)
-            .style("top", `${event.pageY - 30}px`)
+          tooltip.style("left", `${event.pageX + 12}px`).style("top", `${event.pageY - 30}px`)
         })
         .on("mouseout", function () {
           d3.select(this).attr("opacity", "0.85")
@@ -173,19 +169,11 @@ function ChunkWaterfallInner({ chunks, onChunkClick }: Props) {
     })
 
     // Legend
-    const legend = g
-      .append("g")
-      .attr("transform", `translate(${innerW - 160}, -10)`)
+    const legend = g.append("g").attr("transform", `translate(${innerW - 160}, -10)`)
 
     stages.forEach((stage, i) => {
-      const lg = legend
-        .append("g")
-        .attr("transform", `translate(${i * 90}, 0)`)
-      lg.append("rect")
-        .attr("width", 10)
-        .attr("height", 10)
-        .attr("rx", 2)
-        .attr("fill", colors[stage])
+      const lg = legend.append("g").attr("transform", `translate(${i * 90}, 0)`)
+      lg.append("rect").attr("width", 10).attr("height", 10).attr("rx", 2).attr("fill", colors[stage])
       lg.append("text")
         .attr("x", 14)
         .attr("y", 9)
@@ -201,7 +189,7 @@ function ChunkWaterfallInner({ chunks, onChunkClick }: Props) {
 
   if (!chunks.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-muted border border-border rounded-md">
+      <div className="text-muted border-border flex h-48 items-center justify-center rounded-md border text-sm">
         No chunk data available for this trace
       </div>
     )
@@ -216,13 +204,7 @@ function ChunkWaterfallInner({ chunks, onChunkClick }: Props) {
 
 export default function ChunkWaterfall(props: Props) {
   return (
-    <ErrorBoundary
-      fallback={
-        <div className="text-red-400 text-sm p-4">
-          Failed to render chunk waterfall
-        </div>
-      }
-    >
+    <ErrorBoundary fallback={<div className="p-4 text-sm text-red-400">Failed to render chunk waterfall</div>}>
       <ChunkWaterfallInner {...props} />
     </ErrorBoundary>
   )

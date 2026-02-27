@@ -13,7 +13,7 @@ interface Props {
 export default function TraceList({ traces, loading }: Props) {
   if (loading) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 space-y-2">
+      <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-14 w-full" />
         ))}
@@ -23,18 +23,16 @@ export default function TraceList({ traces, loading }: Props) {
 
   if (!traces.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-zinc-800 rounded-xl">
-        <div className="text-2xl mb-3 opacity-40">◎</div>
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-12 text-center">
+        <div className="mb-3 text-2xl opacity-40">◎</div>
         <p className="text-sm text-zinc-400">No traces yet</p>
-        <p className="text-xs text-zinc-600 mt-1">
-          Instrument your RAG pipeline with the SDK to see traces here
-        </p>
+        <p className="mt-1 text-xs text-zinc-600">Instrument your RAG pipeline with the SDK to see traces here</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 divide-y divide-zinc-800/50">
+    <div className="divide-y divide-zinc-800/50 rounded-xl border border-zinc-800 bg-zinc-900">
       {traces.map((trace, i) => (
         <motion.div
           key={trace.query_id}

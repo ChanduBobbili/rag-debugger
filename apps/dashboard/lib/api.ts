@@ -15,11 +15,7 @@ export const getBase = () => {
   return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7777"
 }
 
-async function fetchWithRetry(
-  url: string,
-  options?: RequestInit,
-  retries = 3,
-): Promise<Response> {
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): Promise<Response> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
   try {
@@ -74,9 +70,7 @@ export const api = {
   },
   analytics: {
     metrics: async (days = 7): Promise<AnalyticsResponse> => {
-      const res = await fetchWithRetry(
-        `${getBase()}/analytics/metrics?days=${days}`,
-      )
+      const res = await fetchWithRetry(`${getBase()}/analytics/metrics?days=${days}`)
       return res.json()
     },
   },

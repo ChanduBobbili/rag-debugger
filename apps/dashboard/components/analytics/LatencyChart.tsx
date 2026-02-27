@@ -1,14 +1,6 @@
 "use client"
 
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import type { DailyMetric } from "@/lib/types"
 import ChartTooltip from "./ChartTooltip"
 import ChartCard from "./ChartCard"
@@ -23,7 +15,7 @@ export default function LatencyChart({ data }: Props) {
     <ChartCard
       title="Latency Distribution"
       subtitle="Is your pipeline getting faster?"
-      empty={!data.length || data.every(d => d.avg_latency_ms === null)}
+      empty={!data.length || data.every((d) => d.avg_latency_ms === null)}
     >
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data}>
@@ -33,14 +25,14 @@ export default function LatencyChart({ data }: Props) {
             stroke="#52525b"
             tick={{ fill: "#71717a", fontSize: 11 }}
             tickFormatter={(v: string) => {
-              try { return format(new Date(v), "M/d") } catch { return v }
+              try {
+                return format(new Date(v), "M/d")
+              } catch {
+                return v
+              }
             }}
           />
-          <YAxis
-            stroke="#52525b"
-            tick={{ fill: "#71717a", fontSize: 11 }}
-            tickFormatter={(v: number) => `${v}ms`}
-          />
+          <YAxis stroke="#52525b" tick={{ fill: "#71717a", fontSize: 11 }} tickFormatter={(v: number) => `${v}ms`} />
           <Tooltip content={<ChartTooltip />} />
           <Line
             type="monotone"

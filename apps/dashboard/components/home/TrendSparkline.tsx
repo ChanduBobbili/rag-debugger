@@ -15,11 +15,13 @@ export default function TrendSparkline({ data, color, width = 80, height = 24 }:
   const range = max - min || 1
   const padding = 2
 
-  const points = data.map((v, i) => {
-    const x = padding + (i / Math.max(data.length - 1, 1)) * (width - padding * 2)
-    const y = height - padding - ((v - min) / range) * (height - padding * 2)
-    return `${x},${y}`
-  }).join(" ")
+  const points = data
+    .map((v, i) => {
+      const x = padding + (i / Math.max(data.length - 1, 1)) * (width - padding * 2)
+      const y = height - padding - ((v - min) / range) * (height - padding * 2)
+      return `${x},${y}`
+    })
+    .join(" ")
 
   const fillPoints = `${padding},${height - padding} ${points} ${width - padding},${height - padding}`
   const gradientId = `sparkline-${color.replace(/[^a-z0-9]/gi, "")}`
@@ -33,7 +35,14 @@ export default function TrendSparkline({ data, color, width = 80, height = 24 }:
         </linearGradient>
       </defs>
       <polygon points={fillPoints} fill={`url(#${gradientId})`} />
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

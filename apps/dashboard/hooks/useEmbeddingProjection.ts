@@ -15,9 +15,7 @@ export function useEmbeddingProjection(
 ) {
   const [projection, setProjection] = useState<ProjectedPoint[]>([])
   const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState<
-    "idle" | "computing" | "done" | "error"
-  >("idle")
+  const [status, setStatus] = useState<"idle" | "computing" | "done" | "error">("idle")
 
   useEffect(() => {
     if (!queryVector || chunkVectors.length === 0) return
@@ -37,15 +35,13 @@ export function useEmbeddingProjection(
           })
 
           const embedding = umap.fit(allVectors)
-          const points: ProjectedPoint[] = embedding.map(
-            (coords: number[], i: number) => ({
-              x: coords[0],
-              y: coords[1],
-              isQuery: i === 0,
-              chunkId: i > 0 ? chunkVectors[i - 1].chunk_id : undefined,
-              text: i > 0 ? chunkVectors[i - 1].text : "Query",
-            }),
-          )
+          const points: ProjectedPoint[] = embedding.map((coords: number[], i: number) => ({
+            x: coords[0],
+            y: coords[1],
+            isQuery: i === 0,
+            chunkId: i > 0 ? chunkVectors[i - 1].chunk_id : undefined,
+            text: i > 0 ? chunkVectors[i - 1].text : "Query",
+          }))
           setProjection(points)
           setStatus("done")
         } catch {

@@ -1,15 +1,6 @@
 "use client"
 
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import type { DailyMetric } from "@/lib/types"
 import ChartTooltip from "./ChartTooltip"
 import ChartCard from "./ChartCard"
@@ -24,7 +15,7 @@ export default function GroundingTrendChart({ data }: Props) {
     <ChartCard
       title="Grounding Score Trend"
       subtitle="Is answer quality improving over time?"
-      empty={!data.length || data.every(d => d.avg_grounding === null)}
+      empty={!data.length || data.every((d) => d.avg_grounding === null)}
     >
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={data}>
@@ -40,7 +31,11 @@ export default function GroundingTrendChart({ data }: Props) {
             stroke="#52525b"
             tick={{ fill: "#71717a", fontSize: 11 }}
             tickFormatter={(v: string) => {
-              try { return format(new Date(v), "M/d") } catch { return v }
+              try {
+                return format(new Date(v), "M/d")
+              } catch {
+                return v
+              }
             }}
           />
           <YAxis

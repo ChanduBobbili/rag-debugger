@@ -29,33 +29,33 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
     setProgress(0)
 
     // Dynamic import of umap-js to avoid SSR issues
-    import("umap-js").then(({ UMAP }) => {
-      const allVectors = [queryVector, ...chunkVectors.map((c) => c.vector)]
-      const umap = new UMAP({
-        nComponents: 2,
-        nNeighbors: Math.min(15, allVectors.length - 1),
-        minDist: 0.1,
-      })
+    import("umap-js")
+      .then(({ UMAP }) => {
+        const allVectors = [queryVector, ...chunkVectors.map((c) => c.vector)]
+        const umap = new UMAP({
+          nComponents: 2,
+          nNeighbors: Math.min(15, allVectors.length - 1),
+          minDist: 0.1,
+        })
 
-      try {
-        const embedding = umap.fit(allVectors)
-        const points: ProjectedPoint[] = embedding.map(
-          (coords: number[], i: number) => ({
+        try {
+          const embedding = umap.fit(allVectors)
+          const points: ProjectedPoint[] = embedding.map((coords: number[], i: number) => ({
             x: coords[0],
             y: coords[1],
             isQuery: i === 0,
             chunkId: i > 0 ? chunkVectors[i - 1].chunk_id : undefined,
             text: i > 0 ? chunkVectors[i - 1].text : "Query Vector",
-          }),
-        )
-        setProjection(points)
-        setStatus("done")
-      } catch {
+          }))
+          setProjection(points)
+          setStatus("done")
+        } catch {
+          setStatus("error")
+        }
+      })
+      .catch(() => {
         setStatus("error")
-      }
-    }).catch(() => {
-      setStatus("error")
-    })
+      })
   }, [queryVector, chunkVectors])
 
   // Canvas rendering
@@ -80,10 +80,8 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
     const xRange = xMax - xMin || 1
     const yRange = yMax - yMin || 1
 
-    const scaleX = (v: number) =>
-      padding + ((v - xMin) / xRange) * (W - 2 * padding)
-    const scaleY = (v: number) =>
-      padding + ((v - yMin) / yRange) * (H - 2 * padding)
+    const scaleX = (v: number) => padding + ((v - xMin) / xRange) * (W - 2 * padding)
+    const scaleY = (v: number) => padding + ((v - yMin) / yRange) * (H - 2 * padding)
 
     // Clear
     ctx.fillStyle = "#111118"
@@ -96,10 +94,7 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
       const py = scaleY(p.y)
       ctx.beginPath()
       ctx.arc(px, py, 5, 0, Math.PI * 2)
-      ctx.fillStyle =
-        hoveredPoint?.chunkId === p.chunkId
-          ? "#00ffd0"
-          : "rgba(0, 212, 170, 0.7)"
+      ctx.fillStyle = hoveredPoint?.chunkId === p.chunkId ? "#00ffd0" : "rgba(0, 212, 170, 0.7)"
       ctx.fill()
     })
 
@@ -157,10 +152,8 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
     const xRange = xMax - xMin || 1
     const yRange = yMax - yMin || 1
 
-    const scaleX = (v: number) =>
-      padding + ((v - xMin) / xRange) * (W - 2 * padding)
-    const scaleY = (v: number) =>
-      padding + ((v - yMin) / yRange) * (H - 2 * padding)
+    const scaleX = (v: number) => padding + ((v - xMin) / xRange) * (W - 2 * padding)
+    const scaleY = (v: number) => padding + ((v - yMin) / yRange) * (H - 2 * padding)
 
     let nearest: ProjectedPoint | null = null
     let minDist = 20
@@ -180,7 +173,10 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
 
   if (!queryVector || chunkVectors.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-sm border border-border rounded-md" style={{ color: "var(--muted)" }}>
+      <div
+        className="border-border flex h-64 items-center justify-center rounded-md border text-sm"
+        style={{ color: "var(--muted)" }}
+      >
         No embedding data available
       </div>
     )
@@ -188,9 +184,11 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
 
   if (status === "computing") {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 border border-border rounded-md">
-        <div className="text-sm" style={{ color: "var(--muted)" }}>Computing UMAP projection…</div>
-        <div className="w-48 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface2)" }}>
+      <div className="border-border flex h-64 flex-col items-center justify-center gap-3 rounded-md border">
+        <div className="text-sm" style={{ color: "var(--muted)" }}>
+          Computing UMAP projection…
+        </div>
+        <div className="h-1.5 w-48 overflow-hidden rounded-full" style={{ background: "var(--surface2)" }}>
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{ width: `${progress * 100}%`, background: "var(--rag)" }}
@@ -202,7 +200,7 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
 
   if (status === "error") {
     return (
-      <div className="flex items-center justify-center h-64 text-sm text-red-400 border border-red-900 rounded-md">
+      <div className="flex h-64 items-center justify-center rounded-md border border-red-900 text-sm text-red-400">
         Failed to compute UMAP projection
       </div>
     )
@@ -214,13 +212,13 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
         ref={canvasRef}
         width={600}
         height={400}
-        className="w-full rounded-lg border border-border"
+        className="border-border w-full rounded-lg border"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredPoint(null)}
       />
       {hoveredPoint && (
         <div
-          className="absolute bottom-2 left-2 text-xs p-2 rounded max-w-xs"
+          className="absolute bottom-2 left-2 max-w-xs rounded p-2 text-xs"
           style={{
             background: "#1a1a24",
             border: "1px solid #2a2a3a",
@@ -242,13 +240,7 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
 
 export default function EmbeddingScatter(props: Props) {
   return (
-    <ErrorBoundary
-      fallback={
-        <div className="text-red-400 text-sm p-4">
-          Failed to render embedding scatter
-        </div>
-      }
-    >
+    <ErrorBoundary fallback={<div className="p-4 text-sm text-red-400">Failed to render embedding scatter</div>}>
       <EmbeddingScatterInner {...props} />
     </ErrorBoundary>
   )

@@ -19,20 +19,26 @@ function scoreColor(s: number): string {
   return "text-red-400"
 }
 
-function SummaryCard({ icon: Icon, label, value, colorClass, delay }: {
-  icon: LucideIcon; label: string; value: string; colorClass: string; delay: number
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  colorClass,
+  delay,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  colorClass: string
+  delay: number
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-    >
-      <Card className="p-3 flex items-center gap-3">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+      <Card className="flex items-center gap-3 p-3">
         <Icon className={cn("h-4 w-4 shrink-0", colorClass)} />
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</p>
-          <p className={cn("text-lg font-semibold font-mono", colorClass)}>{value}</p>
+          <p className="text-[10px] tracking-wider text-zinc-500 uppercase">{label}</p>
+          <p className={cn("font-mono text-lg font-semibold", colorClass)}>{value}</p>
         </div>
       </Card>
     </motion.div>

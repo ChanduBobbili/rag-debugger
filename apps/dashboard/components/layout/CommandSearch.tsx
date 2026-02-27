@@ -59,9 +59,7 @@ export default function CommandSearch() {
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput placeholder="Search traces..." />
       <CommandList>
-        <CommandEmpty>
-          {loading ? "Searching..." : "No results found."}
-        </CommandEmpty>
+        <CommandEmpty>{loading ? "Searching..." : "No results found."}</CommandEmpty>
         <CommandGroup heading="Recent Traces">
           {results.map((trace) => (
             <CommandItem
@@ -71,14 +69,12 @@ export default function CommandSearch() {
                 router.push(`/traces/${trace.trace_id}`)
                 setOpen(false)
               }}
-              className="flex items-center gap-3 cursor-pointer"
+              className="flex cursor-pointer items-center gap-3"
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full shrink-0 ${trace.has_error ? "bg-red-500" : "bg-emerald-500"}`}
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${trace.has_error ? "bg-red-500" : "bg-emerald-500"}`}
               />
-              <span className="flex-1 truncate text-sm">
-                {(trace.query_text || "Unknown query").slice(0, 60)}
-              </span>
+              <span className="flex-1 truncate text-sm">{(trace.query_text || "Unknown query").slice(0, 60)}</span>
               {trace.overall_grounding_score !== null && (
                 <Badge
                   variant="secondary"
@@ -87,10 +83,8 @@ export default function CommandSearch() {
                   {trace.overall_grounding_score.toFixed(2)}
                 </Badge>
               )}
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">
-                {trace.created_at
-                  ? formatDistanceToNow(new Date(trace.created_at), { addSuffix: true })
-                  : ""}
+              <span className="shrink-0 font-mono text-[10px] text-zinc-500">
+                {trace.created_at ? formatDistanceToNow(new Date(trace.created_at), { addSuffix: true }) : ""}
               </span>
             </CommandItem>
           ))}
