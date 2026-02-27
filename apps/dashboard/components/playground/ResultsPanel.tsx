@@ -22,11 +22,14 @@ export default function ResultsPanel({ traceId, events, connected }: ResultsPane
         </div>
         <p className="text-sm font-medium text-zinc-500">Ready to run</p>
         <p className="text-xs text-center text-zinc-600 max-w-xs">
-          Configure your pipeline parameters and click Run Query.
-          Your RAG pipeline must be running and instrumented with the SDK.
+          Click <span className="text-zinc-400 font-medium">Run Query</span> to get a{" "}
+          <span className="font-mono text-orange-400">trace_id</span>. Then run your
+          SDK-instrumented pipeline with that ID to see live results here.
         </p>
-        <div className="mt-2 text-xs font-mono bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-md text-zinc-500">
-          init(dashboard_url=&quot;http://localhost:7777&quot;)
+        <div className="mt-3 space-y-1 text-xs font-mono bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-md text-zinc-500 text-left max-w-xs">
+          <p className="text-zinc-400">Example:</p>
+          <p>init(dashboard_url=</p>
+          <p className="pl-2">&quot;http://localhost:7777&quot;)</p>
         </div>
       </div>
     )
@@ -46,6 +49,16 @@ export default function ResultsPanel({ traceId, events, connected }: ResultsPane
 
   return (
     <div className="space-y-4">
+      {traceId && events.length === 0 && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs font-mono">
+          <p className="text-zinc-500 mb-1">Waiting for pipeline events…</p>
+          <p className="text-zinc-600">trace_id: <span className="text-orange-400">{traceId}</span></p>
+          <p className="text-zinc-700 mt-1">
+            In your pipeline, call: new_trace(trace_id=&quot;{traceId}&quot;)
+          </p>
+        </div>
+      )}
+
       {events.length > 0 && (
         <Card className="p-4">
           <PipelineTimeline events={events} />

@@ -49,7 +49,7 @@ export default function LiveFeed({ events, connected, maxVisible = 6 }: LiveFeed
         <span className="text-[10px] text-zinc-500">{activeCount} events</span>
       </div>
 
-      <ScrollArea className={`h-[${maxVisible * 40}px]`}>
+      <ScrollArea style={{ height: maxVisible * 40 }}>
         <div
           ref={scrollRef}
           onScroll={handleScroll}

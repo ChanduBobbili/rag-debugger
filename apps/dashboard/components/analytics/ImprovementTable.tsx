@@ -2,14 +2,14 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import type { QuerySession } from "@/lib/types"
+import type { WorstQuery } from "@/lib/types"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Props {
-  queries: QuerySession[]
+  queries: WorstQuery[]
 }
 
 type SortKey = "grounding" | "latency" | "query"
@@ -40,7 +40,14 @@ export default function ImprovementTable({ queries }: Props) {
     return sortDir === "desc" ? -cmp : cmp
   })
 
-  if (!queries.length) return null
+  if (!queries.length) {
+    return (
+      <div className="rounded-xl border border-dashed border-zinc-800 py-8 text-center">
+        <p className="text-sm text-zinc-500">No improvement candidates</p>
+        <p className="text-xs text-zinc-600 mt-1">All traces have grounding scores above 0.5</p>
+      </div>
+    )
+  }
 
   const cols = [
     { key: "query" as const, label: "Query", sortable: true },

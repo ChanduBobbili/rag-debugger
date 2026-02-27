@@ -7,7 +7,13 @@ import type {
   AnalyticsResponse,
 } from "./types"
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7777"
+export const getBase = () => {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("rag-debugger-server-url")
+    if (saved) return saved.replace(/\/$/, "")
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7777"
+}
 
 async function fetchWithRetry(
   url: string,
@@ -46,36 +52,36 @@ export const api = {
           .filter(([, v]) => v !== undefined)
           .map(([k, v]) => [k, String(v)]),
       )
-      const res = await fetchWithRetry(`${BASE}/traces?${qs}`)
+      const res = await fetchWithRetry(`${getBase()}/traces?${qs}`)
       return res.json()
     },
     get: async (traceId: string): Promise<TraceDetailResponse> => {
-      const res = await fetchWithRetry(`${BASE}/traces/${traceId}`)
+      const res = await fetchWithRetry(`${getBase()}/traces/${traceId}`)
       return res.json()
     },
     chunks: async (traceId: string): Promise<ChunkStageData[]> => {
-      const res = await fetchWithRetry(`${BASE}/traces/${traceId}/chunks`)
+      const res = await fetchWithRetry(`${getBase()}/traces/${traceId}/chunks`)
       return res.json()
     },
     embeddings: async (traceId: string): Promise<EmbeddingData> => {
-      const res = await fetchWithRetry(`${BASE}/traces/${traceId}/embeddings`)
+      const res = await fetchWithRetry(`${getBase()}/traces/${traceId}/embeddings`)
       return res.json()
     },
     grounding: async (traceId: string): Promise<GroundingData> => {
-      const res = await fetchWithRetry(`${BASE}/traces/${traceId}/grounding`)
+      const res = await fetchWithRetry(`${getBase()}/traces/${traceId}/grounding`)
       return res.json()
     },
   },
   analytics: {
     metrics: async (days = 7): Promise<AnalyticsResponse> => {
       const res = await fetchWithRetry(
-        `${BASE}/analytics/metrics?days=${days}`,
+        `${getBase()}/analytics/metrics?days=${days}`,
       )
       return res.json()
     },
   },
   health: async (): Promise<{ status: string; db: string }> => {
-    const res = await fetchWithRetry(`${BASE}/health`)
+    const res = await fetchWithRetry(`${getBase()}/health`)
     return res.json()
   },
 }

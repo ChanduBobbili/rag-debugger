@@ -23,7 +23,7 @@ export default function LatencyChart({ data }: Props) {
     <ChartCard
       title="Latency Distribution"
       subtitle="Is your pipeline getting faster?"
-      empty={!data.length}
+      empty={!data.length || data.every(d => d.avg_latency_ms === null)}
     >
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data}>

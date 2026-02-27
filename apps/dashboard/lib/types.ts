@@ -60,10 +60,17 @@ export interface DailyMetric {
   error_count: number
 }
 
+export interface WorstQuery {
+  query_text: string | null
+  overall_grounding_score: number | null
+  total_duration_ms: number | null
+  trace_id: string
+}
+
 export interface AnalyticsResponse {
   daily: DailyMetric[]
   summary: AnalyticsSummary
-  worst_queries: QuerySession[]
+  worst_queries: WorstQuery[]
 }
 
 export interface TraceDetailResponse {

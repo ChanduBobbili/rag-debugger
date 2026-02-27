@@ -11,12 +11,16 @@ import { cn } from "@/lib/utils"
 
 type FilterType = "all" | "errors" | "low"
 
+const PAGE_SIZE = 50
+
 export default function TracesPage() {
   const [traces, setTraces] = useState<QuerySession[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>("all")
   const [search, setSearch] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -24,10 +28,12 @@ export default function TracesPage() {
       setError(null)
       try {
         const data = await api.traces.list({
-          limit: 100,
+          limit: PAGE_SIZE,
+          offset,
           has_error: filter === "errors" ? true : undefined,
         })
-        setTraces(data)
+        setTraces(prev => offset === 0 ? data : [...prev, ...data])
+        setHasMore(data.length === PAGE_SIZE)
       } catch (e) {
         setError("Failed to load traces. Is the server running at localhost:7777?")
         console.error(e)
@@ -36,7 +42,9 @@ export default function TracesPage() {
       }
     }
     load()
-  }, [filter])
+  }, [filter, offset])
+
+  useEffect(() => { setOffset(0) }, [filter])
 
   const filtered = search
     ? traces.filter(t =>
@@ -59,7 +67,9 @@ export default function TracesPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
     >
-      <div className="flex items-start justify-between mb-4">
+      {/* Filter bar */}
+      <div className="sticky top-0 z-10 backdrop-blur-sm border-b border-zinc-800 mb-4 -mx-4 lg:-mx-6 px-4 lg:px-6">
+        <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-lg font-semibold text-zinc-100">Traces</h1>
           <p className="text-xs text-zinc-500 font-mono">{traces.length} total recorded</p>
@@ -72,9 +82,7 @@ export default function TracesPage() {
           {error}
         </div>
       )}
-
-      {/* Filter bar */}
-      <div className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 mb-4 -mx-4 lg:-mx-6 px-4 lg:px-6">
+        
         <div className="flex items-center gap-2 py-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -101,6 +109,15 @@ export default function TracesPage() {
       </div>
 
       <TraceList traces={filtered} loading={loading} />
+
+      {hasMore && !loading && (
+        <button
+          onClick={() => setOffset(o => o + PAGE_SIZE)}
+          className="w-full mt-3 py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors border border-dashed border-zinc-800 rounded-lg"
+        >
+          Load more traces
+        </button>
+      )}
     </motion.div>
   )
 }

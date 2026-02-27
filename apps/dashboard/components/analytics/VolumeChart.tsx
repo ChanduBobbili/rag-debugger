@@ -23,7 +23,7 @@ export default function VolumeChart({ data }: Props) {
     <ChartCard
       title="Query Volume"
       subtitle="When are users asking the most questions?"
-      empty={!data.length}
+      empty={!data.length || data.every(d => d.total_queries === 0)}
     >
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>

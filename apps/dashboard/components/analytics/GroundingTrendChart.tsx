@@ -24,7 +24,7 @@ export default function GroundingTrendChart({ data }: Props) {
     <ChartCard
       title="Grounding Score Trend"
       subtitle="Is answer quality improving over time?"
-      empty={!data.length}
+      empty={!data.length || data.every(d => d.avg_grounding === null)}
     >
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={data}>

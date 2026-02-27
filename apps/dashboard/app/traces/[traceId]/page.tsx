@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card } from "@/components/ui/card"
 import { Share2, ArrowLeft, AlertCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 const STAGE_COLORS: Record<string, string> = {
   embed: "bg-orange-500",
@@ -61,6 +62,7 @@ export default function TraceDetailPage() {
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href)
+    toast.success("Link copied to clipboard")
   }, [])
 
   useEffect(() => {
@@ -72,12 +74,14 @@ export default function TraceDetailPage() {
       if (e.key === "c" && !e.metaKey) { navigator.clipboard.writeText(traceId); return }
 
       const stages: RAGStage[] = ["embed", "retrieve", "rerank", "generate"]
-      const currentIdx = stages.indexOf(activeTab as RAGStage)
-      if (e.key === "ArrowRight" && currentIdx < stages.length - 1) {
-        setActiveTab(stages[currentIdx + 1])
+      const enabledStages = stages.filter(s => events.some(e => e.stage === s))
+      const currentIdx = enabledStages.indexOf(activeTab as RAGStage)
+
+      if (e.key === "ArrowRight" && currentIdx < enabledStages.length - 1) {
+        setActiveTab(enabledStages[currentIdx + 1])
       }
       if (e.key === "ArrowLeft" && currentIdx > 0) {
-        setActiveTab(stages[currentIdx - 1])
+        setActiveTab(enabledStages[currentIdx - 1])
       }
     }
     document.addEventListener("keydown", handleKeyDown)
@@ -263,7 +267,18 @@ export default function TraceDetailPage() {
                                     </Badge>
                                   </td>
                                   <td className="py-2 px-3 text-[10px] font-mono text-zinc-600">
-                                    {g.source_chunk_id?.slice(0, 10) || "—"}
+                                    {g.source_chunk_id ? (
+                                      <button
+                                        onClick={() => {
+                                          setActiveTab("retrieve")
+                                          const chunk = uniqueChunks.find(c => c.chunk_id === g.source_chunk_id)
+                                          if (chunk) setSelectedChunk(chunk)
+                                        }}
+                                        className="text-orange-400 hover:text-orange-300 transition-colors"
+                                      >
+                                        {g.source_chunk_id.slice(0, 10)}
+                                      </button>
+                                    ) : "—"}
                                   </td>
                                 </tr>
                               ))}

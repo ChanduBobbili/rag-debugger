@@ -13,14 +13,26 @@ const STEPS = {
     { title: "Decorate", code: `@rag_trace("retrieve")\nasync def search(query: str):\n    return await db.query(query)` },
   ],
   langchain: [
-    { title: "Install", code: "pip install rag-debugger-sdk langchain" },
-    { title: "Initialize", code: `from rag_debugger.integrations import LangChainTracer\ntracer = LangChainTracer(dashboard_url="http://localhost:7777")` },
-    { title: "Instrument", code: `chain = retrieval_chain.with_config(\n    callbacks=[tracer]\n)` },
+    { title: "Install", code: "pip install rag-debugger-sdk langchain-core" },
+    {
+      title: "Initialize",
+      code: `from rag_debugger.adapters.langchain import RAGDebuggerCallback\nhandler = RAGDebuggerCallback(dashboard_url="http://localhost:7777")`,
+    },
+    {
+      title: "Instrument",
+      code: `chain = retrieval_chain.with_config(\n    callbacks=[handler]\n)`,
+    },
   ],
   llamaindex: [
-    { title: "Install", code: "pip install rag-debugger-sdk llama-index" },
-    { title: "Initialize", code: `from rag_debugger.integrations import LlamaIndexHandler\nhandler = LlamaIndexHandler(dashboard_url="http://localhost:7777")` },
-    { title: "Instrument", code: `from llama_index.core import Settings\nSettings.callback_manager.add_handler(handler)` },
+    { title: "Install", code: "pip install rag-debugger-sdk llama-index-core" },
+    {
+      title: "Initialize",
+      code: `from rag_debugger.adapters.llamaindex import RAGDebuggerLlamaIndex\nfrom llama_index.core.callbacks import CallbackManager\n\nhandler = RAGDebuggerLlamaIndex(dashboard_url="http://localhost:7777")\ncallback_manager = CallbackManager([handler])`,
+    },
+    {
+      title: "Instrument",
+      code: `index = VectorStoreIndex.from_documents(\n    docs, callback_manager=callback_manager\n)`,
+    },
   ],
 }
 

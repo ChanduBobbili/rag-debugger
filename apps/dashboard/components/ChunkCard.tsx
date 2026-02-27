@@ -1,63 +1,65 @@
 "use client"
+
 import { useState } from "react"
 import type { ChunkScore } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
-interface Props { chunk: ChunkScore; highlighted?: boolean }
+interface Props {
+  chunk: ChunkScore
+  highlighted?: boolean
+}
 
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+function ScoreBar({ label, value, colorClass }: { label: string; value: number; colorClass: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
-      <span style={{ fontSize: 9, color, width: 36, textAlign: "right", flexShrink: 0, fontFamily: "'JetBrains Mono', monospace" }}>{label}</span>
-      <div style={{ flex: 1, height: 3, background: "var(--border2)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${value * 100}%`, background: color, borderRadius: 2 }} />
+    <div className="flex items-center gap-2 flex-1">
+      <span className={cn("text-[9px] w-8 text-right shrink-0 font-mono", colorClass)}>{label}</span>
+      <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+        <div className={cn("h-full rounded-full", colorClass.replace("text-", "bg-"))} style={{ width: `${value * 100}%` }} />
       </div>
-      <span style={{ fontSize: 9, color, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{value.toFixed(2)}</span>
+      <span className={cn("text-[9px] shrink-0 font-mono tabular-nums", colorClass)}>{value.toFixed(2)}</span>
     </div>
   )
 }
 
 export default function ChunkCard({ chunk, highlighted }: Props) {
   const [expanded, setExpanded] = useState(false)
+
   return (
-    <div style={{
-      background: highlighted ? "rgba(255,92,53,0.04)" : "var(--bg2)",
-      border: `1px solid ${highlighted ? "var(--rag)" : "var(--border)"}`,
-      borderRadius: 8, padding: "12px 14px", cursor: "pointer",
-      transition: "border-color 0.15s, background 0.15s",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-        <span style={{
-          fontSize: 9, padding: "2px 6px", background: "var(--surface3)",
-          color: "var(--muted)", borderRadius: 3, fontFamily: "'JetBrains Mono', monospace",
-        }}>
+    <div className={cn(
+      "rounded-lg border p-3 transition-all duration-150",
+      highlighted
+        ? "bg-orange-500/5 border-orange-500/40"
+        : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"
+    )}>
+      <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+        <span className="text-[9px] font-mono text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">
           {chunk.chunk_id}
         </span>
-        <ScoreBar label="cos" value={chunk.cosine_score} color="var(--rag)" />
-        {chunk.rerank_score !== null && chunk.rerank_score !== undefined && (
-          <ScoreBar label="rnk" value={chunk.rerank_score} color="var(--gold)" />
+        <ScoreBar label="cos" value={chunk.cosine_score} colorClass="text-orange-400" />
+        {chunk.rerank_score != null && (
+          <ScoreBar label="rnk" value={chunk.rerank_score} colorClass="text-yellow-400" />
         )}
-        <span style={{ fontSize: 9, color: "var(--muted)", marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace" }}>
-          #{chunk.final_rank + 1}
-        </span>
+        <span className="text-[9px] font-mono text-zinc-600 ml-auto">#{chunk.final_rank + 1}</span>
       </div>
-      <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.6 }}>
+
+      <p className="text-xs text-zinc-400 leading-relaxed">
         {expanded ? chunk.text : chunk.text.slice(0, 200)}
         {chunk.text.length > 200 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            style={{ marginLeft: 4, fontSize: 11, color: "var(--rag)", background: "none", border: "none", cursor: "pointer" }}
+            className="ml-1 text-orange-400 hover:text-orange-300 transition-colors"
           >
             {expanded ? "less" : "…more"}
           </button>
         )}
       </p>
+
       {Object.keys(chunk.metadata).length > 0 && (
-        <details style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
-          <summary style={{ fontSize: 10, color: "var(--muted)", cursor: "pointer" }}>metadata</summary>
-          <pre style={{
-            marginTop: 6, fontSize: 10, padding: "8px 12px", borderRadius: 5,
-            background: "var(--bg)", color: "var(--muted)", overflowX: "auto", maxHeight: 120,
-          }}>
+        <details className="mt-2 pt-2 border-t border-zinc-800">
+          <summary className="text-[10px] text-zinc-600 cursor-pointer hover:text-zinc-400 transition-colors">
+            metadata
+          </summary>
+          <pre className="mt-1.5 text-[10px] font-mono text-zinc-500 bg-zinc-950 border border-zinc-800 rounded p-2 overflow-x-auto max-h-28">
             {JSON.stringify(chunk.metadata, null, 2)}
           </pre>
         </details>

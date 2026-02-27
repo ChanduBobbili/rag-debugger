@@ -23,7 +23,7 @@ export default function ErrorBreakdownChart({ data }: Props) {
     <ChartCard
       title="Error Breakdown"
       subtitle="Which days have the most failures?"
-      empty={!data.length}
+      empty={!data.length || data.every(d => d.error_count === 0)}
     >
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>

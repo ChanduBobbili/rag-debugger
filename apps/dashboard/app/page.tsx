@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { api } from "@/lib/api"
-import type { QuerySession, AnalyticsResponse } from "@/lib/types"
+import type { QuerySession, AnalyticsResponse, DailyMetric } from "@/lib/types"
 import { useTraceStream } from "@/hooks/useTraceStream"
 import { AlertCircle } from "lucide-react"
 import StatCard from "@/components/home/StatCard"
@@ -12,6 +12,18 @@ import LiveFeed from "@/components/home/LiveFeed"
 import GettingStarted from "@/components/home/GettingStarted"
 import { Skeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
+
+function computeDelta(daily: DailyMetric[], key: keyof DailyMetric): { delta: string; deltaPositive: boolean } | undefined {
+  if (daily.length < 2) return undefined
+  const prev = Number(daily[daily.length - 2][key] ?? 0)
+  const curr = Number(daily[daily.length - 1][key] ?? 0)
+  if (prev === 0) return undefined
+  const pct = ((curr - prev) / prev) * 100
+  return {
+    delta: `${Math.abs(pct).toFixed(1)}%`,
+    deltaPositive: pct >= 0,
+  }
+}
 
 export default function HomePage() {
   const [traces, setTraces] = useState<QuerySession[]>([])
@@ -35,6 +47,13 @@ export default function HomePage() {
       })
   }, [])
 
+  useEffect(() => {
+    const latestEvent = events[events.length - 1]
+    if (latestEvent?.stage === "session_complete") {
+      api.traces.list({ limit: 8 }).then(setTraces).catch(() => {})
+    }
+  }, [events])
+
   const s = metrics?.summary
   const daily = metrics?.daily ?? []
   const totalSpark = daily.map((d) => d.total_queries)
@@ -42,26 +61,35 @@ export default function HomePage() {
   const latencySpark = daily.map((d) => d.avg_latency_ms ?? 0)
   const errorSpark = daily.map((d) => d.error_count)
 
+  const traceDelta = computeDelta(daily, "total_queries")
+  const groundingDelta = computeDelta(daily, "avg_grounding")
+  const failureDelta = computeDelta(daily, "error_count")
+  const latencyDelta = computeDelta(daily, "avg_latency_ms")
+
   const cards = [
     {
       label: "Traces Today", color: "orange",
       value: metricsLoading ? "—" : String(s?.total ?? 0),
       sparklineData: totalSpark,
+      ...traceDelta,
     },
     {
       label: "Avg Grounding", color: "emerald",
       value: metricsLoading ? "—" : s?.avg_grounding ? `${(s.avg_grounding * 100).toFixed(0)}%` : "—",
       sparklineData: groundingSpark,
+      ...groundingDelta,
     },
     {
       label: "Failure Rate", color: "red",
       value: metricsLoading ? "—" : `${(s?.failure_rate ?? 0).toFixed(1)}%`,
       sparklineData: errorSpark,
+      ...(failureDelta ? { delta: failureDelta.delta, deltaPositive: !failureDelta.deltaPositive } : {}),
     },
     {
       label: "Avg Latency", color: "violet",
       value: metricsLoading ? "—" : s?.avg_latency ? `${s.avg_latency.toFixed(0)}ms` : "—",
       sparklineData: latencySpark,
+      ...(latencyDelta ? { delta: latencyDelta.delta, deltaPositive: !latencyDelta.deltaPositive } : {}),
     },
   ]
 
@@ -133,7 +161,7 @@ export default function HomePage() {
       </div>
 
       {/* Getting Started — only when no traces */}
-      {!tracesLoading && traces.length === 0 && <GettingStarted />}
+      {!tracesLoading && traces.length === 0 && !error && <GettingStarted />}
     </motion.div>
   )
 }

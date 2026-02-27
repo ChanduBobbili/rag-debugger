@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useTraceStream } from "@/hooks/useTraceStream"
+import { getBase } from "@/lib/api"
 import ConfigPanel, { type PlaygroundConfig, type PlaygroundRun } from "@/components/playground/ConfigPanel"
 import ResultsPanel from "@/components/playground/ResultsPanel"
 import CompareResults from "@/components/playground/CompareResults"
@@ -46,7 +47,21 @@ export default function PlaygroundPage() {
 
   useEffect(() => {
     setHistory(loadHistory())
+    const saved = sessionStorage.getItem("rag-playground-draft")
+    if (saved) {
+      try {
+        const { query: q, configA: cfgA } = JSON.parse(saved)
+        if (q) setQuery(q)
+        if (cfgA) setConfigA(cfgA)
+      } catch {}
+    }
   }, [])
+
+  useEffect(() => {
+    if (query || configA.k !== 10) {
+      sessionStorage.setItem("rag-playground-draft", JSON.stringify({ query, configA }))
+    }
+  }, [query, configA])
 
   const addToHistory = useCallback((run: PlaygroundRun) => {
     setHistory(prev => {
@@ -59,7 +74,7 @@ export default function PlaygroundPage() {
   const runQuery = useCallback(async () => {
     if (!query.trim() || isRunning) return
     setIsRunning(true)
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7777"
+    const base = getBase()
 
     try {
       const resA = await fetch(`${base}/playground/query`, {
