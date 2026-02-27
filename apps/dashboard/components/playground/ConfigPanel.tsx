@@ -1,11 +1,12 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import { Loader2, Play, Trash2 } from "lucide-react"
+import { Loader2, Play, Trash2, HelpCircle, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 export interface PlaygroundConfig {
@@ -41,6 +42,37 @@ interface ConfigPanelProps {
 const MODELS = ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"]
 const CHUNK_SIZES = ["256 tokens", "512 tokens", "1024 tokens"]
 
+/* ---------- Task C: Tooltip map ---------- */
+const PARAM_TOOLTIPS: Record<string, string> = {
+  "Top-K":
+    "Number of chunks retrieved from the vector store. Higher values increase recall but may reduce precision and increase latency.",
+  "Embedding Model":
+    "The model used to embed your query. Must match the model used when your vector store was indexed.",
+  "Chunk Size":
+    "The text segment size used during document ingestion. Smaller chunks are more precise; larger chunks provide more context per result.",
+}
+
+function ParamLabel({ label }: { label: string }) {
+  const tip = PARAM_TOOLTIPS[label]
+  return (
+    <span className="mb-1.5 flex items-center gap-1.5">
+      <span className="text-[10px] tracking-wider text-zinc-500 uppercase">{label}</span>
+      {tip && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button type="button" className="cursor-help" aria-label={`${label} info`}>
+              <HelpCircle className="h-3 w-3 text-zinc-600 transition-colors hover:text-zinc-400" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs border-zinc-700 bg-zinc-800 text-xs text-zinc-300">
+            {tip}
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </span>
+  )
+}
+
 function ConfigFields({
   config,
   onChange,
@@ -55,7 +87,7 @@ function ConfigFields({
       {label && <p className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase">{label}</p>}
       <div>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] tracking-wider text-zinc-500 uppercase">Top-K</span>
+          <ParamLabel label="Top-K" />
           <span className="font-mono text-xs text-orange-400">{config.k}</span>
         </div>
         <input
@@ -68,7 +100,7 @@ function ConfigFields({
         />
       </div>
       <div>
-        <span className="mb-1.5 block text-[10px] tracking-wider text-zinc-500 uppercase">Embedding Model</span>
+        <ParamLabel label="Embedding Model" />
         <select
           value={config.model}
           onChange={(e) => onChange({ ...config, model: e.target.value })}
@@ -82,7 +114,7 @@ function ConfigFields({
         </select>
       </div>
       <div>
-        <span className="mb-1.5 block text-[10px] tracking-wider text-zinc-500 uppercase">Chunk Size</span>
+        <ParamLabel label="Chunk Size" />
         <select
           value={config.chunkSize}
           onChange={(e) => onChange({ ...config, chunkSize: e.target.value })}
@@ -200,6 +232,27 @@ export default function ConfigPanel({
             </>
           )}
         </Button>
+
+        {/* ---------- Task E: Help accordion ---------- */}
+        <details className="overflow-hidden rounded-lg border border-zinc-800 text-xs text-zinc-600">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 transition-colors hover:bg-zinc-800/50 hover:text-zinc-400">
+            <span>How does the Playground work?</span>
+            <ChevronDown className="h-3 w-3 transition-transform [details[open]>&]:rotate-180" />
+          </summary>
+          <div className="space-y-2 border-t border-zinc-800 px-3 pt-1 pb-3 text-zinc-500">
+            <p>
+              1. Click <span className="font-medium text-zinc-300">Run Query</span> to register a trace with the server.
+            </p>
+            <p>
+              2. Copy the <span className="font-mono text-zinc-400">trace_id</span> from the results panel.
+            </p>
+            <p>3. In your pipeline, wrap execution with:</p>
+            <pre className="overflow-x-auto rounded border border-zinc-800 bg-zinc-950 p-2 font-mono text-[10px] text-zinc-400">
+              {`from rag_debugger import new_trace\n\nnew_trace(trace_id="...")\npipeline.run(query)`}
+            </pre>
+            <p>4. Events stream here in real time as your pipeline executes.</p>
+          </div>
+        </details>
       </div>
 
       {/* History */}

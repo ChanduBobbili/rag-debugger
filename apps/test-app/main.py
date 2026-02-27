@@ -193,13 +193,16 @@ async def generate_answer(query: str, context: str, simulate_error: bool = False
     return f"Based on the provided context, {query.lower().rstrip('?')} involves several key concepts from the retrieved documents. The retrieved chunks provide comprehensive coverage of this topic."
 
 
-async def run_rag_pipeline(query: str, k: int = 5, simulate_error: bool = False):
+async def run_rag_pipeline(query: str, k: int = 5, simulate_error: bool = False, trace_id: str = None):
     """Execute the full RAG pipeline for a single query."""
     print(f"\n{'='*60}")
     print(f"  Query: {query}")
     print(f"{'='*60}")
 
-    reset_context()  # Fresh trace for each query
+    if trace_id:
+        new_trace(trace_id=trace_id)
+    else:
+        reset_context()  # Fresh random trace for each query
     start = time.time()
 
     try:
@@ -242,6 +245,7 @@ async def main():
     parser.add_argument("--error", action="store_true", help="Simulate an error trace")
     parser.add_argument("--k", type=int, default=5, help="Number of chunks to retrieve")
     parser.add_argument("--server", type=str, default=SERVER_URL, help="Server URL")
+    parser.add_argument("--trace-id", type=str, help="Run with a specific trace_id")
     args = parser.parse_args()
 
     print("╔══════════════════════════════════════════════════╗")
@@ -249,6 +253,7 @@ async def main():
     print("╚══════════════════════════════════════════════════╝")
     print(f"  Server: {args.server}")
     print(f"  Mode:   {'Loop' if args.loop else 'Single run'}")
+    print(f"  Trace ID: {args.trace_id}")
 
     # Initialize the SDK
     init(dashboard_url=args.server)
@@ -257,7 +262,13 @@ async def main():
     # Give the background worker time to start
     await asyncio.sleep(0.5)
 
-    if args.query:
+    if args.trace_id and args.query:
+        # Run with a specific trace_id
+        try:
+            await run_rag_pipeline(args.query, k=args.k, simulate_error=args.error, trace_id=args.trace_id)
+        except Exception:
+            pass
+    elif args.query:
         # Single custom query
         try:
             await run_rag_pipeline(args.query, k=args.k, simulate_error=args.error)

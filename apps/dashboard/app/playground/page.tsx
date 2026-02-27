@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useTraceStream } from "@/hooks/useTraceStream"
 import { getBase } from "@/lib/api"
+import { Hexagon, X } from "lucide-react"
 import ConfigPanel, { type PlaygroundConfig, type PlaygroundRun } from "@/components/playground/ConfigPanel"
 import ResultsPanel from "@/components/playground/ResultsPanel"
 import CompareResults from "@/components/playground/CompareResults"
@@ -15,6 +16,7 @@ const DEFAULT_CONFIG: PlaygroundConfig = {
 }
 
 const LS_KEY = "rag-playground-history"
+const ONBOARDING_KEY = "rag-playground-onboarding-dismissed"
 
 function loadHistory(): PlaygroundRun[] {
   if (typeof window === "undefined") return []
@@ -43,6 +45,7 @@ export default function PlaygroundPage() {
   const [traceIdB, setTraceIdB] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [history, setHistory] = useState<PlaygroundRun[]>([])
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const streamA = useTraceStream(traceIdA)
   const streamB = useTraceStream(traceIdB)
@@ -57,6 +60,10 @@ export default function PlaygroundPage() {
         if (cfgA) setConfigA(cfgA)
       } catch {}
     }
+    /* Task D: Show onboarding banner on first visit */
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+      setShowOnboarding(true)
+    }
   }, [])
 
   useEffect(() => {
@@ -64,6 +71,11 @@ export default function PlaygroundPage() {
       sessionStorage.setItem("rag-playground-draft", JSON.stringify({ query, configA }))
     }
   }, [query, configA])
+
+  const dismissOnboarding = useCallback(() => {
+    setShowOnboarding(false)
+    localStorage.setItem(ONBOARDING_KEY, "true")
+  }, [])
 
   const addToHistory = useCallback((run: PlaygroundRun) => {
     setHistory((prev) => {
@@ -161,6 +173,36 @@ export default function PlaygroundPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+      {/* ---------- Task D: First-visit onboarding banner ---------- */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative mb-4 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4"
+          >
+            <button
+              onClick={dismissOnboarding}
+              className="absolute top-3 right-3 text-zinc-500 transition-colors hover:text-zinc-300"
+              aria-label="Dismiss onboarding"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex items-start gap-3">
+              <Hexagon className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+              <div>
+                <p className="text-sm font-medium text-zinc-100">Welcome to the Playground</p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Test queries against your live RAG pipeline. Results appear here as your pipeline executes.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="mb-4">
         <h1 className="text-lg font-semibold text-zinc-100">Playground</h1>
         <p className="font-mono text-xs text-zinc-500">Test queries against your live RAG pipeline</p>

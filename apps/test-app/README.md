@@ -31,6 +31,9 @@ uv pip install --python .venv/bin/python3 httpx pydantic
 
 # Point to a different server
 .venv/bin/python3 main.py --server http://my-server:7777
+
+# Run with a specific trace_id
+.venv/bin/python3 main.py --query "What is the age of chandu bobbili?" --trace-id "playground-3de81c7c-0b60-415c-bf86-91282d0480b9"
 ```
 
 ## What It Does

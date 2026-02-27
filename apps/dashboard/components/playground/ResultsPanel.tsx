@@ -1,11 +1,18 @@
 "use client"
 
-import { Play } from "lucide-react"
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Copy, Check } from "lucide-react"
 import type { RAGEvent } from "@/lib/types"
 import PipelineTimeline from "@/components/PipelineTimeline"
 import LiveFeed from "@/components/home/LiveFeed"
 import ResultsSummary from "./ResultsSummary"
 import { Card } from "@/components/ui/card"
+
+const SNIPPET = `from rag_debugger import new_trace
+
+new_trace(trace_id="your_trace_id")
+result = your_pipeline.run("your query")`
 
 interface ResultsPanelProps {
   traceId: string | null
@@ -14,27 +21,65 @@ interface ResultsPanelProps {
 }
 
 export default function ResultsPanel({ traceId, events, connected }: ResultsPanelProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(SNIPPET)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  /* ---------- Task A: Empty state (no run started) ---------- */
   if (!traceId) {
     return (
-      <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 text-zinc-600">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800">
-          <Play className="h-6 w-6 opacity-40" />
-        </div>
-        <p className="text-sm font-medium text-zinc-500">Ready to run</p>
-        <p className="max-w-xs text-center text-xs text-zinc-600">
-          Click <span className="font-medium text-zinc-400">Run Query</span> to get a{" "}
-          <span className="font-mono text-orange-400">trace_id</span>. Then run your SDK-instrumented pipeline with that
-          ID to see live results here.
-        </p>
-        <div className="mt-3 max-w-xs space-y-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-left font-mono text-xs text-zinc-500">
-          <p className="text-zinc-400">Example:</p>
-          <p>init(dashboard_url=</p>
-          <p className="pl-2">&quot;http://localhost:7777&quot;)</p>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex h-full min-h-100 items-center justify-center"
+      >
+        <Card className="w-full max-w-md p-5">
+          <p className="mb-4 text-sm font-medium text-zinc-200">How to use the Playground</p>
+          <ol className="space-y-3">
+            <li className="flex gap-3">
+              <span className="font-mono text-sm font-bold text-orange-400">1</span>
+              <span className="text-sm text-zinc-400">
+                Enter a query and click <span className="font-medium text-zinc-200">Run Query</span>
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-sm font-bold text-orange-400">2</span>
+              <span className="text-sm text-zinc-400">
+                Copy the <code className="font-mono text-zinc-300">trace_id</code> that appears
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-sm font-bold text-orange-400">3</span>
+              <span className="text-sm text-zinc-400">Run your pipeline with that trace&nbsp;ID</span>
+            </li>
+          </ol>
+
+          {/* Copyable code block */}
+          <div className="group relative mt-4 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+            <button
+              onClick={handleCopy}
+              className="absolute top-2 right-2 rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-400"
+              aria-label="Copy snippet"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+            <pre className="overflow-x-auto font-mono text-[11px] leading-relaxed text-zinc-400">{SNIPPET}</pre>
+          </div>
+
+          <p className="mt-3 text-xs text-zinc-600">
+            The dashboard subscribes to your trace_id. Events appear here as your pipeline runs.
+          </p>
+        </Card>
+      </motion.div>
     )
   }
 
+  /* ---------- Computed metrics ---------- */
   const sessionComplete = events.some((e) => e.stage === "session_complete")
   const genEvent = events.find((e) => e.stage === "generate")
   const totalMs = events
@@ -47,14 +92,22 @@ export default function ResultsPanel({ traceId, events, connected }: ResultsPane
 
   return (
     <div className="space-y-4">
+      {/* ---------- Task B: Waiting state ---------- */}
       {traceId && events.length === 0 && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 font-mono text-xs">
-          <p className="mb-1 text-zinc-500">Waiting for pipeline events…</p>
-          <p className="text-zinc-600">
-            trace_id: <span className="text-orange-400">{traceId}</span>
+        <Card className="space-y-3 p-4">
+          <div className="flex items-center gap-2">
+            <span className="live-dot h-2 w-2 rounded-full bg-orange-500" />
+            <span className="text-sm font-medium text-zinc-300">Waiting for pipeline events</span>
+          </div>
+          <div className="space-y-1 rounded-md border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-500">
+            <p className="text-zinc-400">trace_id:</p>
+            <p className="break-all text-orange-400">{traceId}</p>
+          </div>
+          <p className="text-xs text-zinc-600">
+            Pass this <span className="font-mono text-zinc-500">trace_id</span> to{" "}
+            <span className="font-mono text-zinc-500">new_trace()</span> in your pipeline.
           </p>
-          <p className="mt-1 text-zinc-700">In your pipeline, call: new_trace(trace_id=&quot;{traceId}&quot;)</p>
-        </div>
+        </Card>
       )}
 
       {events.length > 0 && (

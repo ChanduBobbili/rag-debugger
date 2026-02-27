@@ -3,6 +3,7 @@
 import type { RAGEvent } from "@/lib/types"
 import ResultsPanel from "./ResultsPanel"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import type { PlaygroundConfig } from "./ConfigPanel"
 
 interface CompareResultsProps {
@@ -25,6 +26,37 @@ function getStats(events: RAGEvent[]) {
     ? genEvent.grounding_scores.filter((g) => g.grounded).length / genEvent.grounding_scores.length
     : null
   return { totalMs, grounding }
+}
+
+/* ---------- Task F: Winner badges with tooltips ---------- */
+function GroundingBadge() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="secondary" className="cursor-help bg-emerald-500/10 text-[9px] text-emerald-400">
+          Winner: Grounding
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs border-zinc-700 bg-zinc-800 text-xs text-zinc-300">
+        This config produced more sentences supported by retrieved context (higher grounding score).
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function LatencyBadge() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="secondary" className="cursor-help bg-violet-500/10 text-[9px] text-violet-400">
+          Winner: Latency
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs border-zinc-700 bg-zinc-800 text-xs text-zinc-300">
+        This config completed the full pipeline faster (lower total duration).
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export default function CompareResults({
@@ -53,15 +85,9 @@ export default function CompareResults({
             k={configA.k}, {configA.model.split("-").pop()}
           </span>
           {bothDone && statsA.grounding != null && statsB.grounding != null && statsA.grounding > statsB.grounding && (
-            <Badge variant="secondary" className="bg-emerald-500/10 text-[9px] text-emerald-400">
-              Winner: Grounding
-            </Badge>
+            <GroundingBadge />
           )}
-          {bothDone && statsA.totalMs < statsB.totalMs && statsA.totalMs > 0 && (
-            <Badge variant="secondary" className="bg-violet-500/10 text-[9px] text-violet-400">
-              Winner: Latency
-            </Badge>
-          )}
+          {bothDone && statsA.totalMs < statsB.totalMs && statsA.totalMs > 0 && <LatencyBadge />}
         </div>
         <ResultsPanel traceId={traceIdA} events={eventsA} connected={connectedA} />
       </div>
@@ -74,15 +100,9 @@ export default function CompareResults({
             k={configB.k}, {configB.model.split("-").pop()}
           </span>
           {bothDone && statsB.grounding != null && statsA.grounding != null && statsB.grounding > statsA.grounding && (
-            <Badge variant="secondary" className="bg-emerald-500/10 text-[9px] text-emerald-400">
-              Winner: Grounding
-            </Badge>
+            <GroundingBadge />
           )}
-          {bothDone && statsB.totalMs < statsA.totalMs && statsB.totalMs > 0 && (
-            <Badge variant="secondary" className="bg-violet-500/10 text-[9px] text-violet-400">
-              Winner: Latency
-            </Badge>
-          )}
+          {bothDone && statsB.totalMs < statsA.totalMs && statsB.totalMs > 0 && <LatencyBadge />}
         </div>
         <ResultsPanel traceId={traceIdB} events={eventsB} connected={connectedB} />
       </div>
