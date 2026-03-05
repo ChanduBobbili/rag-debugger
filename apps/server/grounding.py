@@ -1,14 +1,17 @@
 # NOTE: This module runs in a ProcessPoolExecutor — no async, no event loop access
-from sentence_transformers import SentenceTransformer, util
+import os
 import re
 
+GROUNDING_THRESHOLD = float(os.environ.get("RAG_DEBUGGER_GROUNDING_THRESHOLD", "0.65"))
+
 # Module-level model — loaded once per worker process
-_model: SentenceTransformer | None = None
+_model = None
 
 
-def _get_model() -> SentenceTransformer:
+def _get_model():
     global _model
     if _model is None:
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
@@ -37,6 +40,7 @@ def compute_grounding(answer: str, chunks: list[dict]) -> list[dict]:
     sent_embeddings = model.encode(sentences, convert_to_tensor=True)
     chunk_embeddings = model.encode(chunk_texts, convert_to_tensor=True)
 
+    from sentence_transformers import util
     similarity_matrix = util.cos_sim(sent_embeddings, chunk_embeddings)
 
     results: list[dict] = []
@@ -46,9 +50,9 @@ def compute_grounding(answer: str, chunks: list[dict]) -> list[dict]:
         best_idx = int(scores.argmax())
         results.append({
             "sentence": sentence,
-            "grounded": best_score > 0.65,
+            "grounded": best_score > GROUNDING_THRESHOLD,
             "score": round(best_score, 4),
-            "source_chunk_id": chunk_ids[best_idx] if best_score > 0.65 else None,
+            "source_chunk_id": chunk_ids[best_idx] if best_score > GROUNDING_THRESHOLD else None,
         })
 
     return results

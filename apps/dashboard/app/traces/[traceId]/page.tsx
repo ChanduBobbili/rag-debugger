@@ -5,6 +5,12 @@ import { useParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { api } from "@/lib/api"
 import type { RAGEvent, ChunkScore, GroundingData, EmbeddingData, RAGStage } from "@/lib/types"
+
+/** Local extension — server now returns has_real_vectors and vector on each chunk */
+type EmbeddingDataExt = EmbeddingData & {
+  has_real_vectors?: boolean
+  chunks?: (ChunkScore & { vector?: number[] })[]
+}
 import PipelineTimeline from "@/components/PipelineTimeline"
 import ChunkWaterfall from "@/components/ChunkWaterfall"
 import ChunkCard from "@/components/ChunkCard"
@@ -35,7 +41,7 @@ export default function TraceDetailPage() {
 
   const [events, setEvents] = useState<RAGEvent[]>([])
   const [grounding, setGrounding] = useState<GroundingData | null>(null)
-  const [embeddings, setEmbeddings] = useState<EmbeddingData | null>(null)
+  const [embeddings, setEmbeddings] = useState<EmbeddingDataExt | null>(null)
   const [loading, setLoading] = useState(true)
   const [groundingLoading, setGroundingLoading] = useState(true)
   const [selectedChunk, setSelectedChunk] = useState<ChunkScore | null>(null)
@@ -339,18 +345,24 @@ export default function TraceDetailPage() {
       {/* Embedding Scatter */}
       {embeddings?.available && (
         <Card className="p-4">
-          <h3 className="mb-4 text-xs font-medium tracking-wider text-zinc-500 uppercase">Embedding Space (UMAP)</h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xs font-medium tracking-wider text-zinc-500 uppercase">Embedding Space (UMAP)</h3>
+            {!embeddings.has_real_vectors && (
+              <span className="rounded-full bg-zinc-800 px-2 py-0.5 font-mono text-[10px] text-zinc-400">
+                Proxy vectors
+              </span>
+            )}
+          </div>
           <EmbeddingScatter
             queryVector={embeddings.query_vector ?? null}
-            chunkVectors={uniqueChunks
-              .filter(() => embeddings.query_vector)
-              .map((c) => ({
-                vector: Array(embeddings.query_vector?.length ?? 0)
-                  .fill(0)
-                  .map(() => Math.random()),
-                chunk_id: c.chunk_id,
-                text: c.text,
-              }))}
+            chunkVectors={(embeddings.chunks ?? []).map((c, i) => {
+              const chunk = c as ChunkScore & { vector?: number[] }
+              return {
+                vector: chunk.vector ?? [],
+                chunk_id: chunk.chunk_id ?? String(i),
+                text: chunk.text ?? "",
+              }
+            })}
           />
         </Card>
       )}

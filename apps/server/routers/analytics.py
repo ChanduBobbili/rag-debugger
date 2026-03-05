@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query
+from datetime import datetime, timedelta, timezone
 import database
 
 router = APIRouter()
@@ -7,6 +8,7 @@ router = APIRouter()
 @router.get("/analytics/metrics")
 async def get_metrics(days: int = Query(7, ge=1, le=90)) -> dict:
     db = database.get_db()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     daily_cursor = db.execute("""
         SELECT
@@ -16,10 +18,10 @@ async def get_metrics(days: int = Query(7, ge=1, le=90)) -> dict:
             AVG(total_duration_ms) as avg_latency_ms,
             SUM(CASE WHEN has_error THEN 1 ELSE 0 END) as error_count
         FROM query_sessions
-        WHERE created_at >= current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
+        WHERE created_at >= ?
         GROUP BY DATE_TRUNC('day', created_at)
         ORDER BY date
-    """, [days])
+    """, [cutoff])
     daily_stats = database._rows_to_dicts(daily_cursor)
 
     summary = db.execute("""
@@ -29,14 +31,17 @@ async def get_metrics(days: int = Query(7, ge=1, le=90)) -> dict:
             AVG(total_duration_ms) as avg_latency,
             SUM(CASE WHEN has_error THEN 1 ELSE 0 END) * 100.0 / GREATEST(COUNT(*), 1) as failure_rate
         FROM query_sessions
-        WHERE created_at >= current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
-    """, [days]).fetchone()
+        WHERE created_at >= ?
+    """, [cutoff]).fetchone()
 
     worst_cursor = db.execute("""
-        SELECT query_text, overall_grounding_score, total_duration_ms, trace_id
+        SELECT query_text, overall_grounding_score, total_duration_ms, trace_id,
+               has_error
         FROM query_sessions
-        WHERE overall_grounding_score IS NOT NULL
-        ORDER BY overall_grounding_score ASC
+        WHERE overall_grounding_score IS NOT NULL OR has_error = true
+        ORDER BY
+            has_error DESC,
+            overall_grounding_score ASC NULLS FIRST
         LIMIT 10
     """)
     worst = database._rows_to_dicts(worst_cursor)

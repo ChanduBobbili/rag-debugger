@@ -1,6 +1,6 @@
 [project]
 name = "rag-debugger"
-version = "1.0.1"
+version = "1.1.1"
 description = "Real-time debugging SDK for RAG pipelines"
 readme = "README.md"
 license = {text = "MIT"}

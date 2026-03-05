@@ -138,16 +138,18 @@ async def delete_trace(trace_id: str) -> int:
 
 async def cleanup_old_traces(retention_days: int) -> dict:
     """Delete traces older than retention_days. Returns summary."""
+    from datetime import datetime, timedelta, timezone
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
     async with _write_lock:
         db = get_db()
         db.execute("""
             DELETE FROM rag_events
-            WHERE created_at < current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
-        """, [retention_days])
+            WHERE created_at < ?
+        """, [cutoff])
         db.execute("""
             DELETE FROM query_sessions
-            WHERE created_at < current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1 day')
-        """, [retention_days])
+            WHERE created_at < ?
+        """, [cutoff])
     return {"retention_days": retention_days}
 
 

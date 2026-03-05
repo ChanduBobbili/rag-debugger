@@ -13,6 +13,7 @@ import time
 import uuid
 from typing import Any
 from ..context import get_or_create_trace_id, get_or_create_query_id
+from ..decorators import MAX_VECTOR_DIMS
 from ..emitter import emit
 
 
@@ -47,7 +48,7 @@ class RAGDebuggerOpenAI:
                 "ts_start": ts_start,
                 "duration_ms": duration,
                 "query_text": text[:500],
-                "query_vector": vector[:1536],
+                "query_vector": vector[:MAX_VECTOR_DIMS],
             })
 
             return vector

@@ -1,6 +1,8 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Request
 from models import RAGEvent, EventIngestResponse
 from routers.ws import ws_manager
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import database
 import grounding
 import asyncio
@@ -8,6 +10,8 @@ import json
 
 router = APIRouter()
 _process_pool = None
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 def set_process_pool(pool) -> None:
@@ -31,7 +35,8 @@ def _lookup_chunks_for_trace(trace_id: str) -> list[dict]:
 
 
 @router.post("/events", response_model=EventIngestResponse)
-async def ingest_event(event: RAGEvent, background_tasks: BackgroundTasks) -> EventIngestResponse:
+@limiter.limit("1000/minute")
+async def ingest_event(request: Request, event: RAGEvent, background_tasks: BackgroundTasks) -> EventIngestResponse:
     event_dict = event.model_dump()
 
     # Handle session_complete event type
@@ -43,7 +48,11 @@ async def ingest_event(event: RAGEvent, background_tasks: BackgroundTasks) -> Ev
             "total_duration_ms": event.duration_ms,
             "chunk_count": event.metadata.get("chunk_count", 0),
             "final_answer": event.generated_answer,
-            "overall_grounding_score": event.metadata.get("overall_grounding_score"),
+            "overall_grounding_score": (
+                event.metadata.get("overall_grounding_score")
+                if not event.metadata.get("has_error")
+                else 0.0
+            ),
             "stage_count": event.metadata.get("stage_count", 0),
             "has_error": bool(event.error),
         })

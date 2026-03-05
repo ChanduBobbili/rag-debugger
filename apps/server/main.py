@@ -4,8 +4,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from concurrent.futures import ProcessPoolExecutor
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import database
 from routers import events, traces, analytics, ws, playground
+from grounding import GROUNDING_THRESHOLD
 
 RETENTION_DAYS = int(os.environ.get("RAG_DEBUGGER_RETENTION_DAYS", "30"))
 
@@ -31,6 +35,7 @@ async def lifespan(app: FastAPI):
     pool = ProcessPoolExecutor(max_workers=2)
     events.set_process_pool(pool)
     print("✓ ProcessPool started (2 workers)")
+    print(f"✓ Grounding threshold: {GROUNDING_THRESHOLD}")
 
     # Start retention cleanup task if enabled
     retention_task = None
@@ -53,11 +58,16 @@ async def lifespan(app: FastAPI):
     print("✓ DuckDB closed")
 
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="RAG Debugger API",
     version="0.2.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -90,4 +100,5 @@ async def health() -> dict:
         "status": "ok" if db_status == "ok" else "degraded",
         "db": db_status,
         "version": "0.2.0",
+        "grounding_threshold": GROUNDING_THRESHOLD,
     }

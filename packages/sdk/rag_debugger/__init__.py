@@ -5,7 +5,7 @@ from .decorators import rag_trace
 from .context import set_trace_id, set_query_id, reset_context
 from .context import _trace_id, _query_id
 
-__version__ = "1.0.1"
+__version__ = "1.1.1"
 
 _initialized = False
 
@@ -22,15 +22,65 @@ def init(dashboard_url: str = "http://localhost:7777") -> None:
     _initialized = True
 
 
+class _NewTraceCtx:
+    """
+    Dual-use: call new_trace() directly OR use as a context manager.
+
+    Direct call (fire-and-forget, no cleanup guarantee)::
+
+        new_trace(trace_id="req-123")
+
+    Context manager (resets context on exit, even on error)::
+
+        with new_trace(trace_id="req-123"):
+            result = run_pipeline(query)
+    """
+
+    def __init__(self, trace_id: str | None, query_id: str | None) -> None:
+        self._tid = trace_id
+        self._qid = query_id
+        self._trace_token = None
+        self._query_token = None
+        self._applied = False
+
+    def _apply(self) -> None:
+        if self._applied:
+            return
+        self._applied = True
+        if self._tid:
+            self._trace_token = _trace_id.set(self._tid)
+        if self._qid:
+            self._query_token = _query_id.set(self._qid)
+
+    def __enter__(self):
+        self._apply()
+        return self
+
+    def __exit__(self, *_):
+        if self._trace_token is not None:
+            _trace_id.reset(self._trace_token)
+        if self._query_token is not None:
+            _query_id.reset(self._query_token)
+
+
 def new_trace(
     trace_id: str | None = None,
     query_id: str | None = None,
-) -> None:
-    """Explicitly set trace/query IDs (optional — auto-generated if not called)."""
-    if trace_id:
-        set_trace_id(trace_id)
-    if query_id:
-        set_query_id(query_id)
+) -> _NewTraceCtx:
+    """
+    Set trace/query IDs. Use as a context manager to guarantee cleanup::
+
+        with new_trace(trace_id="req-123"):
+            await pipeline.run(query)
+
+    Or call directly (no cleanup guarantee — only safe in single-request scripts)::
+
+        new_trace(trace_id="req-123")
+        await pipeline.run(query)
+    """
+    ctx = _NewTraceCtx(trace_id, query_id)
+    ctx._apply()
+    return ctx
 
 
 class _TraceHandle:

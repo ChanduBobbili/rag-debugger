@@ -14,11 +14,19 @@ export default function SettingsPage() {
   const [serverUrl, setServerUrl] = useState(DEFAULT_URL)
   const [saved, setSaved] = useState(false)
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle")
+  const [threshold, setThreshold] = useState<number | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem(LS_KEY)
     if (stored) setServerUrl(stored)
   }, [])
+
+  useEffect(() => {
+    fetch(`${serverUrl.trim().replace(/\/$/, "")}/health`)
+      .then(r => r.json())
+      .then(d => setThreshold(d.grounding_threshold ?? null))
+      .catch(() => setThreshold(null))
+  }, [serverUrl])
 
   const handleSave = () => {
     const url = serverUrl.trim().replace(/\/$/, "")
@@ -44,6 +52,16 @@ export default function SettingsPage() {
       setTestStatus("error")
     }
     setTimeout(() => setTestStatus("idle"), 3000)
+  }
+
+  const handleClearAll = async () => {
+    if (!confirm("Delete ALL traces? This cannot be undone.")) return
+    try {
+      await fetch(`${serverUrl.trim().replace(/\/$/, "")}/traces`, { method: "DELETE" })
+      toast.success("All traces deleted")
+    } catch {
+      toast.error("Failed to delete traces")
+    }
   }
 
   return (
@@ -93,6 +111,16 @@ export default function SettingsPage() {
                     : "Test"}
             </Button>
           </div>
+          {threshold !== null && (
+            <p className="text-xs text-zinc-600 font-mono mt-2">
+              Grounding threshold:{" "}
+              <span className="text-zinc-400">{threshold}</span>
+              {" · "}
+              <span className="text-zinc-700">
+                set via RAG_DEBUGGER_GROUNDING_THRESHOLD env var
+              </span>
+            </p>
+          )}
         </div>
 
         <div className="flex gap-2 pt-1">
@@ -105,6 +133,21 @@ export default function SettingsPage() {
             Reset to default
           </Button>
         </div>
+      </Card>
+
+      <Card className="p-5 border-red-900/30">
+        <h3 className="text-sm font-medium text-red-400 mb-1">Danger Zone</h3>
+        <p className="text-xs text-zinc-500 mb-3">
+          Permanently delete all traces and analytics data from the server.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClearAll}
+          className="border-red-900/50 text-red-400 hover:bg-red-950/30"
+        >
+          Clear All Traces
+        </Button>
       </Card>
 
       <Card className="p-5">

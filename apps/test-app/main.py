@@ -124,13 +124,14 @@ async def embed_query(query: str) -> list[float]:
 
 
 @rag_trace("retrieve")
-async def retrieve_chunks(query: str, k: int = 5) -> list[dict]:
+async def retrieve_chunks(query: str, k: int = 5) -> tuple[list[dict], list[list[float]]]:
     """Simulate vector similarity search against the knowledge base."""
     await asyncio.sleep(random.uniform(0.05, 0.25))  # simulate DB query
 
     # Pick k random chunks and assign fake similarity scores
     selected = random.sample(KNOWLEDGE_BASE, min(k, len(KNOWLEDGE_BASE)))
     chunks = []
+    vectors = []
     for i, doc in enumerate(selected):
         cosine = round(random.uniform(0.55, 0.97), 4)
         chunks.append({
@@ -142,11 +143,13 @@ async def retrieve_chunks(query: str, k: int = 5) -> list[dict]:
             "final_rank": i,
             "metadata": {"source": doc["source"], "page": doc["page"]},
         })
+        # Generate a fake chunk vector (32-dim for demo)
+        vectors.append([random.uniform(-1, 1) for _ in range(32)])
     # Sort by score descending
     chunks.sort(key=lambda c: c["score"], reverse=True)
     for i, c in enumerate(chunks):
         c["final_rank"] = i
-    return chunks
+    return chunks, vectors
 
 
 @rag_trace("rerank")
@@ -213,7 +216,7 @@ async def run_rag_pipeline(query: str, k: int = 5, simulate_error: bool = False,
 
         # Stage 2: Retrieve
         print(f"  🔍 Retrieving top-{k} chunks...")
-        chunks = await retrieve_chunks(query, k=k)
+        chunks, _chunk_vectors = await retrieve_chunks(query, k=k)
         print(f"     → {len(chunks)} chunks retrieved (scores: {chunks[0]['score']:.3f} → {chunks[-1]['score']:.3f})")
 
         # Stage 3: Rerank
@@ -297,9 +300,10 @@ async def main():
                 pass
             await asyncio.sleep(0.5)  # Small gap between traces
 
-    # Give emitter time to flush
-    print("\n  📤 Flushing events...")
-    await asyncio.sleep(2)
+    print("\n  📤 Flushing events to server...")
+    from rag_debugger import stop_worker
+    await stop_worker()
+    print("  ✅ All events flushed.")
     print("  ✅ Done! Check the dashboard at http://localhost:3000")
 
 

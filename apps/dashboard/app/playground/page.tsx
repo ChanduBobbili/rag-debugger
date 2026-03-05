@@ -42,6 +42,7 @@ export default function PlaygroundPage() {
   const [configA, setConfigA] = useState<PlaygroundConfig>({ ...DEFAULT_CONFIG })
   const [configB, setConfigB] = useState<PlaygroundConfig>({ ...DEFAULT_CONFIG, k: 20 })
   const [traceIdA, setTraceIdA] = useState<string | null>(null)
+  const [serverMessage, setServerMessage] = useState<string | null>(null)
   const [traceIdB, setTraceIdB] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [history, setHistory] = useState<PlaygroundRun[]>([])
@@ -103,6 +104,7 @@ export default function PlaygroundPage() {
       })
       const dataA = await resA.json()
       setTraceIdA(dataA.trace_id)
+      setServerMessage(dataA.message ?? null)
 
       if (mode === "compare") {
         const resB = await fetch(`${base}/playground/query`, {
@@ -238,7 +240,7 @@ export default function PlaygroundPage() {
               configB={configB}
             />
           ) : (
-            <ResultsPanel traceId={traceIdA} events={streamA.events} connected={streamA.connected} />
+            <ResultsPanel traceId={traceIdA} events={streamA.events} connected={streamA.connected} serverMessage={serverMessage} />
           )}
         </div>
       </div>

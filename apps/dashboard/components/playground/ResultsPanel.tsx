@@ -18,9 +18,10 @@ interface ResultsPanelProps {
   traceId: string | null
   events: RAGEvent[]
   connected: boolean
+  serverMessage?: string | null
 }
 
-export default function ResultsPanel({ traceId, events, connected }: ResultsPanelProps) {
+export default function ResultsPanel({ traceId, events, connected, serverMessage }: ResultsPanelProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -107,6 +108,11 @@ export default function ResultsPanel({ traceId, events, connected }: ResultsPane
             Pass this <span className="font-mono text-zinc-500">trace_id</span> to{" "}
             <span className="font-mono text-zinc-500">new_trace()</span> in your pipeline.
           </p>
+          {serverMessage && (
+            <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 p-2">
+              <pre className="whitespace-pre-wrap font-mono text-[11px] text-zinc-500">{serverMessage}</pre>
+            </div>
+          )}
         </Card>
       )}
 

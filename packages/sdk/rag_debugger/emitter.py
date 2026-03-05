@@ -50,9 +50,30 @@ async def _ensure_worker_started() -> None:
 
 
 async def stop_worker() -> None:
+    """
+    Drain the event queue and shut down the background worker.
+
+    Call this at application shutdown to guarantee all buffered events
+    are flushed before the process exits. Without this, the last N
+    events in the queue will be silently lost.
+
+    Usage in an async app::
+
+        import rag_debugger
+        # ... at shutdown:
+        await rag_debugger.stop_worker()
+
+    Usage in a script::
+
+        asyncio.run(rag_debugger.stop_worker())
+    """
     if _worker_task:
         await _queue.join()
         _worker_task.cancel()
+        try:
+            await _worker_task
+        except asyncio.CancelledError:
+            pass
 
 
 async def emit(event: dict) -> None:

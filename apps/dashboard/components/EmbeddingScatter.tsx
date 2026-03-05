@@ -31,7 +31,7 @@ function EmbeddingScatterInner({ queryVector, chunkVectors }: Props) {
     // Dynamic import of umap-js to avoid SSR issues
     import("umap-js")
       .then(({ UMAP }) => {
-        const allVectors = [queryVector, ...chunkVectors.map((c) => c.vector)]
+        const allVectors = [queryVector, ...chunkVectors.map((c) => c.vector ?? queryVector.map(() => 0))]
         const umap = new UMAP({
           nComponents: 2,
           nNeighbors: Math.min(15, allVectors.length - 1),

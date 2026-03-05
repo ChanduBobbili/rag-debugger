@@ -107,8 +107,19 @@ def _enrich_event(event: dict, result, stage: str) -> None:
     if stage == "embed" and isinstance(result, list):
         event["query_vector"] = result[:MAX_VECTOR_DIMS]
         event.setdefault("metadata", {})["vector_dims"] = len(result)
-    elif stage in ("retrieve", "rerank") and isinstance(result, list):
-        event["chunks"] = [_to_chunk_dict(c, i) for i, c in enumerate(result)]
+    elif stage in ("retrieve", "rerank"):
+        # Support both list and (chunks, vectors) tuple returns
+        chunks = result
+        vectors = None
+        if isinstance(result, tuple) and len(result) == 2:
+            chunks, vectors = result
+        if isinstance(chunks, list):
+            chunk_dicts = [_to_chunk_dict(c, i) for i, c in enumerate(chunks)]
+            if vectors and isinstance(vectors, list):
+                for i, cd in enumerate(chunk_dicts):
+                    if i < len(vectors) and vectors[i]:
+                        cd["vector"] = vectors[i][:MAX_VECTOR_DIMS]
+            event["chunks"] = chunk_dicts
     elif stage == "generate" and isinstance(result, str):
         event["generated_answer"] = result
 
